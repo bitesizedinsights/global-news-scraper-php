@@ -424,21 +424,21 @@ test('limit is omitted by default so the Actor default applies', function () {
     expect(sentBody($history[0]['request']))->not->toHaveKey('limit');
 });
 
-test('limit outside 0 to 10000 throws before any request', function (int $limit) {
+test('negative limit throws before any request', function (int $limit) {
     $history = [];
     $client = makeClient([], $history);
 
     expect(fn () => $client->scrape([Source::Reuters], limit: $limit))
-        ->toThrow(InvalidInputException::class, 'limit must be between 0 and 10000')
+        ->toThrow(InvalidInputException::class, 'limit must not be negative')
         ->and($history)->toBe([]);
-})->with([-1, 10001]);
+})->with([-1, PHP_INT_MIN]);
 
-test('limit 10000 is accepted', function () {
+test('limit has no upper bound', function (int $limit) {
     $history = [];
-    makeClient([US => []], $history)->scrape([Source::Reuters], limit: 10000);
+    makeClient([US => []], $history)->scrape([Source::Reuters], limit: $limit);
 
-    expect(sentBody($history[0]['request'])['limit'])->toBe(10000);
-});
+    expect(sentBody($history[0]['request'])['limit'])->toBe($limit);
+})->with([10001, 1_000_000, PHP_INT_MAX]);
 
 test('analysis flags are sent to every collector run when enabled', function (string $param, string $flag) {
     $history = [];
