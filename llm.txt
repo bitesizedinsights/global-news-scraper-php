@@ -29,7 +29,7 @@ Key facts:
   - `Source`: one case per news outlet (302), value is the Actor input key, e.g. NewYorkTimes ('new_york_times'); label(), collectors()
   - `Collector`: Es, Fr, Id, JpEn, Latam, Mx, Sea, Uk, Us, Arab, TwEn, Ng, Scandinavian; value is the collection key (`jp-en`); actorId(), sources(), isRegional()
   - `ArticleType`: Article ('article'), Video ('video'), Audio ('audio')
-- Exceptions: `InvalidInputException` (extends InvalidArgumentException; empty or non-Source sources, thrown before any request), `MissingApiKeyException` (extends ApiException), `ApiException`, `RateLimitException` (retryAfter). Failing collector runs are not thrown but returned in `ScrapeResult::$errors`.
+- Exceptions: `InvalidInputException` (extends InvalidArgumentException; empty or non-Source sources, or an invalid option; thrown before any request), `MissingApiKeyException` (extends ApiException), `ApiException`, `RateLimitException` (retryAfter). Failing collector runs are not thrown but returned in `ScrapeResult::$errors`.
 
 ## Example
 ```php
