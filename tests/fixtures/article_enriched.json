@@ -1,0 +1,19 @@
+{
+  "url": "https://www.bbc.co.uk/news/articles/example",
+  "article_title": "Example BBC headline",
+  "authors": ["Reporter One", "Reporter Two"],
+  "date_publish": "2026-02-16T08:00:00",
+  "article_description": null,
+  "text": "Body text of the example article.",
+  "language": "en",
+  "image_url": null,
+  "source_domain": "www.bbc.co.uk",
+  "type": "article",
+  "sentiment": {"sentiment": "positive"},
+  "tags": {"tags": ["politics"]},
+  "summary": {"summary": "Short summary."},
+  "five_w1h": {"who": "Example"},
+  "detected_language": {"language": "en"},
+  "fixed_text": {"text": "Body text of the example article."},
+  "error": null
+}

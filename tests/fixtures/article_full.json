@@ -1,0 +1,19 @@
+{
+  "url": "https://www.nytimes.com/2026/02/15/us/example-headline.html",
+  "article_title": "Example article headline",
+  "authors": ["Author Name"],
+  "date_publish": "2026-02-15T10:30:00",
+  "article_description": "Brief summary of the article content.",
+  "text": "Full article text extracted from the page...",
+  "language": "en",
+  "image_url": "https://static01.nyt.com/images/example.jpg",
+  "source_domain": "www.nytimes.com",
+  "type": "article",
+  "sentiment": null,
+  "tags": null,
+  "summary": null,
+  "five_w1h": null,
+  "detected_language": null,
+  "fixed_text": null,
+  "error": null
+}
