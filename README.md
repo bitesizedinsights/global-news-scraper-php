@@ -117,9 +117,23 @@ $result = $client->scrape(
 );
 ```
 
+## Error Handling for Partial News Results in PHP
+
+A failing collector run, for example a rate limit, a server error or a failed Actor run, does not throw. It is returned in `ScrapeResult::$errors` as a `CollectorError` (collector and message) while the articles of all other collectors are still returned. `hasErrors()` and `isComplete()` summarize the outcome.
+
+Invalid input throws `InvalidInputException` (an `InvalidArgumentException`) before any request is sent, and a missing API key throws `MissingApiKeyException`.
+
+```php
+$result = $client->scrape([Source::Reuters, Source::BbcNews]);
+
+foreach ($result->errors as $error) {
+    echo "{$error->collector->value} failed: {$error->message}\n";
+}
+```
+
 ## PHP Examples
 
-See [`examples/`](examples) for runnable scripts: `01-basic.php`, `02-search-query.php`, `03-date-range.php`, `04-limit-and-merge.php`, `05-analysis-addons.php`.
+See [`examples/`](examples) for runnable scripts: `01-basic.php`, `02-search-query.php`, `03-date-range.php`, `04-limit-and-merge.php`, `05-analysis-addons.php`, `06-error-handling.php`.
 
 ## Requirements
 
