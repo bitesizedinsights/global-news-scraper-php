@@ -69,9 +69,18 @@ test('languages are assigned as documented', function () {
         ->and(Source::CbcNews->language())->toBe(SourceGroup::English)
         ->and(Source::Dawn->language())->toBe(SourceGroup::English)
         ->and(Source::Joop->language())->toBe(SourceGroup::Dutch)
+        ->and(Source::Ynet->language())->toBe(SourceGroup::Hebrew)
+        ->and(Source::AajTak->language())->toBe(SourceGroup::Hindi)
         ->and(Source::WatsonDe->language())->toBe(SourceGroup::German)
         ->and(Source::WatsonFr->language())->toBe(SourceGroup::French)
-        ->and(Source::CorriereDelTicino->language())->toBe(SourceGroup::Italian);
+        ->and(Source::CorriereDelTicino->language())->toBe(SourceGroup::Italian)
+        ->and(Source::Jang->language())->toBe(SourceGroup::Urdu)
+        ->and(Source::AppPashto->language())->toBe(SourceGroup::Pashto)
+        ->and(Source::AppSindhi->language())->toBe(SourceGroup::Sindhi)
+        ->and(Source::AppSaraiki->language())->toBe(SourceGroup::Saraiki)
+        ->and(Source::VoaKurdishKurmanji->language())->toBe(SourceGroup::Kurmanji)
+        ->and(Source::Rudaw->language())->toBe(SourceGroup::Sorani)
+        ->and(Source::ZazakiNews->language())->toBe(SourceGroup::Zazaki);
 });
 
 test('a group plans the collectors that offer its sources', function () {
@@ -92,6 +101,15 @@ test('a group plans the collectors that offer its sources', function () {
         ->and($collectors(SourceGroup::Italian))->toBe(['it', 'ch'])
         ->and($collectors(SourceGroup::German))->toBe(['de', 'ch'])
         ->and($collectors(SourceGroup::Dutch))->toBe(['nl'])
+        ->and($collectors(SourceGroup::Hebrew))->toBe(['il'])
+        ->and($collectors(SourceGroup::Hindi))->toBe(['in'])
+        ->and($collectors(SourceGroup::Urdu))->toBe(['pk'])
+        ->and($collectors(SourceGroup::Pashto))->toBe(['pk'])
+        ->and($collectors(SourceGroup::Sindhi))->toBe(['pk'])
+        ->and($collectors(SourceGroup::Saraiki))->toBe(['pk'])
+        ->and($collectors(SourceGroup::Kurmanji))->toBe(['kurdish'])
+        ->and($collectors(SourceGroup::Sorani))->toBe(['kurdish'])
+        ->and($collectors(SourceGroup::Zazaki))->toBe(['kurdish'])
         ->and($collectors(SourceGroup::Spanish))->toBe(['mx', 'latam', 'es', 'gt', 'py']);
 });
 

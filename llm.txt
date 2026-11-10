@@ -26,8 +26,8 @@ Key facts:
   - `CollectorError`: collector: Collector, message: string
   - `RunPlan`: collector: Collector, sources: Source[]
 - Enums:
-  - `Source`: one case per news outlet (568), value is the Actor input key, e.g. NewYorkTimes ('new_york_times'); label(), collectors()
-  - `Collector`: Es, Fr, Id, JpEn, Latam, Mx, Sea, Uk, Us, Arab, TwEn, Ng, Scandinavian, Th, KrKo, Jp, Vn, Pl, Tr, It, De, Au, Br, Ca, Ch, Gt, IdEn, IlEn, InEn, KrEn, Nl, PkEn, Py; value is the collection key (`jp-en`); actorId(), sources(), isRegional()
+  - `Source`: one case per news outlet (604), value is the Actor input key, e.g. NewYorkTimes ('new_york_times'); label(), collectors()
+  - `Collector`: Es, Fr, Id, JpEn, Latam, Mx, Sea, Uk, Us, Arab, TwEn, Ng, Scandinavian, Th, KrKo, Jp, Vn, Pl, Tr, It, De, Au, Br, Ca, Ch, Gt, IdEn, Il, IlEn, In, InEn, KrEn, Kurdish, Nl, Pk, PkEn, Py; value is the collection key (`jp-en`); actorId(), sources(), isRegional()
   - `ArticleType`: Article ('article'), Video ('video'), Audio ('audio')
 - Exceptions: `InvalidInputException` (extends InvalidArgumentException; empty or non-Source sources, or an invalid option; thrown before any request), `MissingApiKeyException` (extends ApiException), `ApiException`, `RateLimitException` (retryAfter). Failing collector runs are not thrown but returned in `ScrapeResult::$errors`.
 

@@ -8,12 +8,12 @@ use GlobalNewsScraper\Exception\InvalidInputException;
 use GlobalNewsScraper\Exception\MissingApiKeyException;
 use GlobalNewsScraper\Exception\RateLimitException;
 
-test('there are 33 collectors with unique keys and actor IDs', function () {
+test('there are 37 collectors with unique keys and actor IDs', function () {
     $cases = Collector::cases();
 
-    expect($cases)->toHaveCount(33)
-        ->and(array_unique(array_map(fn (Collector $c) => $c->value, $cases)))->toHaveCount(33)
-        ->and(array_unique(array_map(fn (Collector $c) => $c->actorId(), $cases)))->toHaveCount(33);
+    expect($cases)->toHaveCount(37)
+        ->and(array_unique(array_map(fn (Collector $c) => $c->value, $cases)))->toHaveCount(37)
+        ->and(array_unique(array_map(fn (Collector $c) => $c->actorId(), $cases)))->toHaveCount(37);
 });
 
 test('collector maps to its Apify actor', function () {

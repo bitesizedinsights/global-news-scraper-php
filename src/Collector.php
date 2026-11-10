@@ -36,10 +36,14 @@ enum Collector: string
     case Ch = 'ch';
     case Gt = 'gt';
     case IdEn = 'id-en';
+    case Il = 'il';
     case IlEn = 'il-en';
+    case In = 'in';
     case InEn = 'in-en';
     case KrEn = 'kr-en';
+    case Kurdish = 'kurdish';
     case Nl = 'nl';
+    case Pk = 'pk';
     case PkEn = 'pk-en';
     case Py = 'py';
 
@@ -76,10 +80,14 @@ enum Collector: string
             self::Ch => 'swiss-news-scraper',
             self::Gt => 'guatemala-news-scraper',
             self::IdEn => 'indonesia-english-news-scraper',
+            self::Il => 'hebrew-news-scraper',
             self::IlEn => 'english-israel-news-scraper',
+            self::In => 'indian-news-article-scraper',
             self::InEn => 'india-english-news-scraper',
             self::KrEn => 'korean-news-article-scraper',
+            self::Kurdish => 'kurdish-news-scraper',
             self::Nl => 'dutch-news-scraper',
+            self::Pk => 'pakistani-news-scraper',
             self::PkEn => 'pakistan-english-news-articles-scraper',
             self::Py => 'paraguay-news-scraper',
         };

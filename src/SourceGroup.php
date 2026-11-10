@@ -33,6 +33,21 @@ enum SourceGroup: string
     case Italian = 'it';
     case German = 'de';
     case Dutch = 'nl';
+    case Hebrew = 'he';
+    case Hindi = 'hi';
+    case Urdu = 'ur';
+    case Pashto = 'ps';
+    case Sindhi = 'sd';
+    /** Saraiki: ISO 639-3 code, it has no ISO 639-1 code. */
+    case Saraiki = 'skr';
+    /**
+     * Kurdish is split by variety, as the Kurdish collector documents it: Kurmanji (Latin script), Sorani (Arabic
+     * script) and Zazaki. The ISO 639-1 code `ku` would merge them, so the ISO 639-3 / BCP 47 codes are used.
+     */
+    case Kurmanji = 'kmr';
+    case Sorani = 'ckb';
+    /** Zazaki (Kirmancki, Dimli): a language related to Kurdish, covered by the Kurdish collector. */
+    case Zazaki = 'zza';
 
     /**
      * Display name, e.g. `Spanish`.

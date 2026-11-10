@@ -29,10 +29,14 @@ All notable changes to this project are documented in this file. The format is b
 - `ch` collector (Switzerland, 10 German-, French- and Italian-language outlets, in `SourceGroup::German`, `French` and `Italian`).
 - `gt` collector (Guatemala, Spanish, 6 outlets, 5 of them new).
 - `id-en` collector (Indonesia, English, 3 outlets, all also offered by `sea`).
+- `il` collector (Israel, Hebrew, 6 outlets) and `SourceGroup::Hebrew`.
 - `il-en` collector (Israel, English, 7 outlets).
+- `in` collector (India, Hindi, 9 outlets) and `SourceGroup::Hindi`.
 - `in-en` collector (India, English, 15 outlets).
 - `kr-en` collector (South Korea, English, 8 outlets).
+- `kurdish` collector (Kurdish media, 9 outlets) and `SourceGroup::Kurmanji`, `Sorani` and `Zazaki`.
 - `nl` collector (Netherlands, Dutch, 6 outlets) and `SourceGroup::Dutch`.
+- `pk` collector (Pakistan, 12 outlets) and `SourceGroup::Urdu`, `Pashto`, `Sindhi` and `Saraiki`.
 - `pk-en` collector (Pakistan, English, 11 outlets, 10 of them new).
 - `py` collector (Paraguay, Spanish, 4 outlets, 3 of them new).
 
