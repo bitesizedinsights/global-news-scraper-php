@@ -80,9 +80,20 @@ $result = $client->scrape(
 );
 ```
 
+## How to Limit the Number of News Articles in PHP
+
+`limit` is the maximum number of articles per collector run (0 to 10000, 0 means unlimited). Without it the Actor default of 100 applies. The limit counts for each run, not for the merged result: two collectors with `limit: 10` return up to 20 articles. Filters such as `searchQuery` can make an Actor process more articles than it returns.
+
+```php
+$result = $client->scrape(
+    sources: [Source::NewYorkTimes, Source::Reuters, Source::BbcNews],
+    limit: 10,
+);
+```
+
 ## PHP Examples
 
-See [`examples/`](examples) for runnable scripts: `01-basic.php`, `02-search-query.php`, `03-date-range.php`.
+See [`examples/`](examples) for runnable scripts: `01-basic.php`, `02-search-query.php`, `03-date-range.php`, `04-limit-and-merge.php`.
 
 ## Requirements
 

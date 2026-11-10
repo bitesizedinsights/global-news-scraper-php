@@ -103,7 +103,8 @@ test('a shared source is run once on the most specific collector', function () {
     $client->scrape([Source::LaJornada]);
 
     expect($history)->toHaveCount(2)
-        ->and($history[0]['request']->getUri()->getPath())->toBe('/v2/acts/bite-sized-insights~mexico-news-aggregator/runs');
+        ->and($history[0]['request']->getUri()->getPath())
+        ->toBe('/v2/acts/bite-sized-insights~mexico-news-aggregator/runs');
 });
 
 test('duplicate sources are sent once', function () {
@@ -395,4 +396,46 @@ test('today is a valid startDate and endDate', function () {
     makeClient([US => []], $history)->scrape([Source::Reuters], startDate: $today, endDate: $today);
 
     expect(sentBody($history[0]['request'])['start_date'])->toBe($today);
+});
+
+test('limit is sent to every collector run', function () {
+    $history = [];
+    $client = makeClient([UK => [], US => []], $history);
+
+    $client->scrape([Source::BbcNews, Source::Reuters], limit: 25);
+
+    $posts = array_values(array_filter($history, fn ($h) => $h['request']->getMethod() === 'POST'));
+
+    expect(sentBody($posts[0]['request'])['limit'])->toBe(25)
+        ->and(sentBody($posts[1]['request'])['limit'])->toBe(25);
+});
+
+test('limit 0 means unlimited and is sent as 0', function () {
+    $history = [];
+    makeClient([US => []], $history)->scrape([Source::Reuters], limit: 0);
+
+    expect(sentBody($history[0]['request']))->toHaveKey('limit', 0);
+});
+
+test('limit is omitted by default so the Actor default applies', function () {
+    $history = [];
+    makeClient([US => []], $history)->scrape([Source::Reuters]);
+
+    expect(sentBody($history[0]['request']))->not->toHaveKey('limit');
+});
+
+test('limit outside 0 to 10000 throws before any request', function (int $limit) {
+    $history = [];
+    $client = makeClient([], $history);
+
+    expect(fn () => $client->scrape([Source::Reuters], limit: $limit))
+        ->toThrow(InvalidInputException::class, 'limit must be between 0 and 10000')
+        ->and($history)->toBe([]);
+})->with([-1, 10001]);
+
+test('limit 10000 is accepted', function () {
+    $history = [];
+    makeClient([US => []], $history)->scrape([Source::Reuters], limit: 10000);
+
+    expect(sentBody($history[0]['request'])['limit'])->toBe(10000);
 });
