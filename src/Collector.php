@@ -22,6 +22,9 @@ enum Collector: string
     case TwEn = 'tw-en';
     case Ng = 'ng';
     case Scandinavian = 'scandinavian';
+    case Jp = 'jp';
+    case KrKo = 'kr-ko';
+    case Th = 'th';
 
     /**
      * Public Apify Actor ID (`username/name`).
@@ -42,6 +45,9 @@ enum Collector: string
             self::TwEn => 'taiwan-english-news-scraper',
             self::Ng => 'nigerian-news-articles-scraper',
             self::Scandinavian => 'scandinavian-news-scraper',
+            self::Jp => 'nippon-news-scraper',
+            self::KrKo => 'korean-news-scraper',
+            self::Th => 'thailand-news-scraper',
         };
     }
 

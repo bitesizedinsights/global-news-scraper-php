@@ -9,8 +9,8 @@ use GlobalNewsScraper\SourceMap;
 test('every source value is a snake case key and unique', function () {
     $values = array_map(fn (Source $s) => $s->value, Source::cases());
 
-    expect($values)->toHaveCount(302)
-        ->and(array_unique($values))->toHaveCount(302)
+    expect($values)->toHaveCount(360)
+        ->and(array_unique($values))->toHaveCount(360)
         ->and(array_filter($values, fn (string $v) => preg_match('/^[a-z0-9_]+$/', $v) !== 1))->toBe([]);
 });
 

@@ -9,6 +9,9 @@ All notable changes to this project are documented in this file. The format is b
 - `SourceGroup` enum (`All` and one case per language: English, Spanish, French, Portuguese, Indonesian, Arabic, Danish, Norwegian, Swedish) and `Source::language()`.
 - `Client::scrape()` and `Client::plan()` accept a `Source`, `SourceGroup` or `Collector` (alone or mixed in an array or collection); groups and collectors are expanded and deduplicated.
 - Example `07-source-groups.php`.
+- `th` collector (Thailand, 25 outlets, 15 of them new) and `SourceGroup::Thai`.
+- `kr-ko` collector (South Korea, 22 outlets) and `SourceGroup::Korean`.
+- `jp` collector (Japan, Japanese-language, 21 outlets) and `SourceGroup::Japanese`.
 
 ## [0.1.0] - 2026-11-08
 

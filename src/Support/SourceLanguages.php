@@ -33,6 +33,9 @@ final class SourceLanguages
         'arab' => SourceGroup::Arabic,
         'tw-en' => SourceGroup::English,
         'ng' => SourceGroup::English,
+        'jp' => SourceGroup::Japanese,
+        'kr-ko' => SourceGroup::Korean,
+        'th' => SourceGroup::Thai,
     ];
 
     /** @var array<string, SourceGroup> */
@@ -70,6 +73,17 @@ final class SourceLanguages
         'goteborgs_posten' => SourceGroup::Swedish,
         'sydsvenskan' => SourceGroup::Swedish,
         'dagens_industri' => SourceGroup::Swedish,
+        // th: English-language outlets
+        'bangkok_post' => SourceGroup::English,
+        'khaosod_english' => SourceGroup::English,
+        'thai_enquirer' => SourceGroup::English,
+        'prachatai_english' => SourceGroup::English,
+        'thaiger' => SourceGroup::English,
+        'chiang_rai_times' => SourceGroup::English,
+        'pattaya_mail' => SourceGroup::English,
+        'pattaya_news' => SourceGroup::English,
+        'bangkok_scoop' => SourceGroup::English,
+        'thailand_business_news' => SourceGroup::English,
     ];
 
     /**
