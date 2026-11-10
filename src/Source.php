@@ -401,6 +401,33 @@ enum Source: string
     case Wprost = 'wprost';
     case Niezalezna = 'niezalezna';
     case Epoznan = 'epoznan';
+    case Sabah = 'sabah';
+    case Sozcu = 'sozcu';
+    case Haberturk = 'haberturk';
+    case YeniSafak = 'yeni_safak';
+    case Karar = 'karar';
+    case AnadoluAjansi = 'anadolu_ajansi';
+    case Star = 'star';
+    case MilliGazete = 'milli_gazete';
+    case Birgun = 'birgun';
+    case Diken = 'diken';
+    case IndependentTurkce = 'independent_turkce';
+    case IlFattoQuotidiano = 'il_fatto_quotidiano';
+    case IlGiornale = 'il_giornale';
+    case OpenOnline = 'open_online';
+    case Linkiesta = 'linkiesta';
+    case Formiche = 'formiche';
+    case IlPiccolo = 'il_piccolo';
+    case LaNuovaSardegna = 'la_nuova_sardegna';
+    case IlTirreno = 'il_tirreno';
+    case UnioneSarda = 'unione_sarda';
+    case LaSicilia = 'la_sicilia';
+    case DieWelt = 'die_welt';
+    case Bild = 'bild';
+    case NTv = 'n_tv';
+    case Taz = 'taz';
+    case KoelnerStadtAnzeiger = 'koelner_stadt_anzeiger';
+    case BerlinerZeitung = 'berliner_zeitung';
 
     /**
      * Display name of the outlet.

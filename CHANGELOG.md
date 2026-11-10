@@ -19,6 +19,9 @@ All notable changes to this project are documented in this file. The format is b
 - `jp` collector (Japan, Japanese-language, 21 outlets) and `SourceGroup::Japanese`.
 - `vn` collector (Vietnam, 19 outlets, 16 of them new) and `SourceGroup::Vietnamese`.
 - `pl` collector (Poland, 12 outlets) and `SourceGroup::Polish`.
+- `tr` collector (Turkey, 11 outlets) and `SourceGroup::Turkish`.
+- `it` collector (Italy, 10 outlets) and `SourceGroup::Italian`.
+- `de` collector (Germany, 6 outlets) and `SourceGroup::German`.
 
 ## [0.1.0] - 2026-11-08
 

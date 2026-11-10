@@ -27,6 +27,9 @@ enum Collector: string
     case Th = 'th';
     case Vn = 'vn';
     case Pl = 'pl';
+    case Tr = 'tr';
+    case It = 'it';
+    case De = 'de';
 
     /**
      * Public Apify Actor ID (`username/name`).
@@ -52,6 +55,9 @@ enum Collector: string
             self::Th => 'thailand-news-scraper',
             self::Vn => 'vietnam-news-scraper',
             self::Pl => 'poland-news-scraper',
+            self::Tr => 'turkey-news-scraper',
+            self::It => 'italian-news-article-scraper',
+            self::De => 'german-news-scraper',
         };
     }
 

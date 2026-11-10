@@ -38,6 +38,9 @@ final class SourceLanguages
         'th' => SourceGroup::Thai,
         'vn' => SourceGroup::Vietnamese,
         'pl' => SourceGroup::Polish,
+        'tr' => SourceGroup::Turkish,
+        'it' => SourceGroup::Italian,
+        'de' => SourceGroup::German,
     ];
 
     /** @var array<string, SourceGroup> */

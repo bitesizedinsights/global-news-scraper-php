@@ -29,6 +29,9 @@ enum SourceGroup: string
     case Thai = 'th';
     case Vietnamese = 'vi';
     case Polish = 'pl';
+    case Turkish = 'tr';
+    case Italian = 'it';
+    case German = 'de';
 
     /**
      * Display name, e.g. `Spanish`.
