@@ -373,6 +373,34 @@ enum Source: string
     case Beartai = 'beartai';
     case Siamphone = 'siamphone';
     case Sanook = 'sanook';
+    case Vnexpress = 'vnexpress';
+    case TuoiTre = 'tuoi_tre';
+    case ThanhNien = 'thanh_nien';
+    case DanTri = 'dan_tri';
+    case NguoiLaoDong = 'nguoi_lao_dong';
+    case BaoTinTuc = 'bao_tin_tuc';
+    case Vneconomy = 'vneconomy';
+    case Cafef = 'cafef';
+    case Genk = 'genk';
+    case Tinhte = 'tinhte';
+    case Soha = 'soha';
+    case Plo = 'plo';
+    case HueNgayNay = 'hue_ngay_nay';
+    case HueNgayNayEn = 'hue_ngay_nay_en';
+    case Cadn = 'cadn';
+    case BaoDongThap = 'bao_dong_thap';
+    case Rzeczpospolita = 'rzeczpospolita';
+    case Onet = 'onet';
+    case WirtualnaPolska = 'wirtualna_polska';
+    case Tvn24 = 'tvn24';
+    case PolsatNews = 'polsat_news';
+    case DziennikPl = 'dziennik_pl';
+    case Fakt = 'fakt';
+    case Rmf24 = 'rmf24';
+    case MoneyPl = 'money_pl';
+    case Wprost = 'wprost';
+    case Niezalezna = 'niezalezna';
+    case Epoznan = 'epoznan';
 
     /**
      * Display name of the outlet.

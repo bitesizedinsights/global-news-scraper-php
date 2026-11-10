@@ -25,6 +25,8 @@ enum Collector: string
     case Jp = 'jp';
     case KrKo = 'kr-ko';
     case Th = 'th';
+    case Vn = 'vn';
+    case Pl = 'pl';
 
     /**
      * Public Apify Actor ID (`username/name`).
@@ -48,6 +50,8 @@ enum Collector: string
             self::Jp => 'nippon-news-scraper',
             self::KrKo => 'korean-news-scraper',
             self::Th => 'thailand-news-scraper',
+            self::Vn => 'vietnam-news-scraper',
+            self::Pl => 'poland-news-scraper',
         };
     }
 

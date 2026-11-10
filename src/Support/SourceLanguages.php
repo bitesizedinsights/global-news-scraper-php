@@ -36,6 +36,8 @@ final class SourceLanguages
         'jp' => SourceGroup::Japanese,
         'kr-ko' => SourceGroup::Korean,
         'th' => SourceGroup::Thai,
+        'vn' => SourceGroup::Vietnamese,
+        'pl' => SourceGroup::Polish,
     ];
 
     /** @var array<string, SourceGroup> */
@@ -73,6 +75,8 @@ final class SourceLanguages
         'goteborgs_posten' => SourceGroup::Swedish,
         'sydsvenskan' => SourceGroup::Swedish,
         'dagens_industri' => SourceGroup::Swedish,
+        // vn: English-language outlet
+        'hue_ngay_nay_en' => SourceGroup::English,
         // th: English-language outlets
         'bangkok_post' => SourceGroup::English,
         'khaosod_english' => SourceGroup::English,

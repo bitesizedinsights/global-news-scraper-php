@@ -17,6 +17,8 @@ All notable changes to this project are documented in this file. The format is b
 - `th` collector (Thailand, 25 outlets, 15 of them new) and `SourceGroup::Thai`.
 - `kr-ko` collector (South Korea, 22 outlets) and `SourceGroup::Korean`.
 - `jp` collector (Japan, Japanese-language, 21 outlets) and `SourceGroup::Japanese`.
+- `vn` collector (Vietnam, 19 outlets, 16 of them new) and `SourceGroup::Vietnamese`.
+- `pl` collector (Poland, 12 outlets) and `SourceGroup::Polish`.
 
 ## [0.1.0] - 2026-11-08
 

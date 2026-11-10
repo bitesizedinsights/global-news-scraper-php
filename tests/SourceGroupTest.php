@@ -56,7 +56,10 @@ test('languages are assigned as documented', function () {
         ->and(Source::Matichon->language())->toBe(SourceGroup::Thai)
         ->and(Source::BangkokPost->language())->toBe(SourceGroup::English)
         ->and(Source::ChosunIlbo->language())->toBe(SourceGroup::Korean)
-        ->and(Source::AsahiShimbun->language())->toBe(SourceGroup::Japanese);
+        ->and(Source::AsahiShimbun->language())->toBe(SourceGroup::Japanese)
+        ->and(Source::TuoiTre->language())->toBe(SourceGroup::Vietnamese)
+        ->and(Source::HueNgayNayEn->language())->toBe(SourceGroup::English)
+        ->and(Source::Onet->language())->toBe(SourceGroup::Polish);
 });
 
 test('a group plans the collectors that offer its sources', function () {
@@ -70,7 +73,9 @@ test('a group plans the collectors that offer its sources', function () {
         ->and($collectors(SourceGroup::Portuguese))->toBe(['latam'])
         ->and($collectors(SourceGroup::Thai))->toBe(['th'])
         ->and($collectors(SourceGroup::Korean))->toBe(['kr-ko'])
-        ->and($collectors(SourceGroup::Japanese))->toBe(['jp']);
+        ->and($collectors(SourceGroup::Japanese))->toBe(['jp'])
+        ->and($collectors(SourceGroup::Vietnamese))->toBe(['vn'])
+        ->and($collectors(SourceGroup::Polish))->toBe(['pl']);
 });
 
 test('All plans every collector once', function () {
