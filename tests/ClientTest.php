@@ -454,13 +454,23 @@ test('analysis flags are sent to every collector run when enabled', function (st
     'sentiment' => ['withSentiment', 'with_sentiment'],
     'tags' => ['withTags', 'with_tags'],
     'summary' => ['withSummary', 'with_summary'],
+    '5w1h' => ['with5w1h', 'with_5w1h'],
+    'language detection' => ['withLanguageDetection', 'with_language_detection'],
+    'fix text' => ['withFixText', 'with_fix_text'],
 ]);
 
 test('analysis flags are omitted by default', function () {
     $history = [];
     makeClient([US => []], $history)->scrape([Source::Reuters]);
 
-    expect(array_keys(sentBody($history[0]['request'])))->not->toContain('with_sentiment', 'with_tags', 'with_summary');
+    expect(array_keys(sentBody($history[0]['request'])))->not->toContain(
+        'with_sentiment',
+        'with_tags',
+        'with_summary',
+        'with_5w1h',
+        'with_language_detection',
+        'with_fix_text',
+    );
 });
 
 test('enriched articles expose the analysis results', function () {
@@ -473,4 +483,32 @@ test('enriched articles expose the analysis results', function () {
         ->and($article->sentiment)->toBe(['sentiment' => 'positive'])
         ->and($article->tags)->toBe(['tags' => ['politics']])
         ->and($article->summary)->toBe(['summary' => 'Short summary.']);
+});
+
+test('all analysis add-ons can be combined and reach the article', function () {
+    $history = [];
+    $client = makeClient([UK => ['items' => [loadFixture('article_enriched')]]], $history);
+
+    $article = $client->scrape(
+        [Source::BbcNews],
+        withSentiment: true,
+        withTags: true,
+        withSummary: true,
+        with5w1h: true,
+        withLanguageDetection: true,
+        withFixText: true,
+    )->entries->first();
+
+    $body = sentBody($history[0]['request']);
+
+    expect($body)->toMatchArray([
+        'with_sentiment' => true,
+        'with_tags' => true,
+        'with_summary' => true,
+        'with_5w1h' => true,
+        'with_language_detection' => true,
+        'with_fix_text' => true,
+    ])->and($article->fiveW1h)->toBe(['who' => 'Example'])
+        ->and($article->detectedLanguage)->toBe(['language' => 'en'])
+        ->and($article->fixedText)->toBe(['text' => 'Body text of the example article.']);
 });

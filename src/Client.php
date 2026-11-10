@@ -82,6 +82,11 @@ final class Client
      * @param  bool  $withSentiment  Add a sentiment score to each article (`Article::$sentiment`).
      * @param  bool  $withTags  Add category tags to each article (`Article::$tags`).
      * @param  bool  $withSummary  Add a compact summary to each article (`Article::$summary`).
+     * @param  bool  $with5w1h  Add a who, what, when, where, why and how extraction (`Article::$fiveW1h`).
+     * @param  bool  $withLanguageDetection  Detect the language from the text (`Article::$detectedLanguage`);
+     *                                       `Article::$language` keeps the value declared by the source.
+     * @param  bool  $withFixText  Repair broken text such as mojibake (`Article::$fixedText`); `Article::$text`
+     *                             stays unchanged.
      *
      * @throws InvalidInputException
      * @throws MissingApiKeyException
@@ -95,6 +100,9 @@ final class Client
         bool $withSentiment = false,
         bool $withTags = false,
         bool $withSummary = false,
+        bool $with5w1h = false,
+        bool $withLanguageDetection = false,
+        bool $withFixText = false,
     ): ScrapeResult {
         $plans = $this->plan($sources);
 
@@ -140,6 +148,9 @@ final class Client
             'with_sentiment' => $withSentiment,
             'with_tags' => $withTags,
             'with_summary' => $withSummary,
+            'with_5w1h' => $with5w1h,
+            'with_language_detection' => $withLanguageDetection,
+            'with_fix_text' => $withFixText,
         ] as $flag => $enabled) {
             if ($enabled) {
                 $options[$flag] = true;

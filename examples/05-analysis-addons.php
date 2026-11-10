@@ -18,6 +18,9 @@ $result = $client->scrape(
     withSentiment: true,
     withTags: true,
     withSummary: true,
+    with5w1h: true,
+    withLanguageDetection: true,
+    withFixText: true,
 );
 
 foreach ($result->entries as $article) {
@@ -25,4 +28,7 @@ foreach ($result->entries as $article) {
     echo '  sentiment: '.json_encode($article->sentiment)."\n";
     echo '  tags: '.json_encode($article->tags)."\n";
     echo '  summary: '.json_encode($article->summary)."\n";
+    echo '  5w1h: '.json_encode($article->fiveW1h)."\n";
+    echo '  detected language: '.json_encode($article->detectedLanguage)."\n";
+    echo '  fixed text: '.($article->fixedText === null ? 'not needed' : 'repaired')."\n";
 }

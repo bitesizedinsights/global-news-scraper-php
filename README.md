@@ -91,17 +91,20 @@ $result = $client->scrape(
 );
 ```
 
-## How to Add Sentiment, Tags and Summaries to News Articles in PHP
+## How to Add Sentiment, Tags, Summaries and 5W1H to News Articles in PHP
 
-Three optional add-ons enrich each article. They are billed per enriched article on top of the article price; articles that fail or are too short are skipped and not charged.
+Six optional add-ons enrich each article. They are billed per enriched article on top of the article price; articles that fail or are too short are skipped and not charged.
 
 | Parameter | Result property | Price per 1,000 articles |
 | --- | --- | --- |
 | `withSentiment` | `Article::$sentiment` | $0.20 |
 | `withTags` | `Article::$tags` | $1.50 |
 | `withSummary` | `Article::$summary` | $2.50 |
+| `with5w1h` | `Article::$fiveW1h` | $4.00 |
+| `withLanguageDetection` | `Article::$detectedLanguage` | $0.10 |
+| `withFixText` | `Article::$fixedText` | $1.25 (only for repaired articles) |
 
-The results are returned as decoded JSON objects (`?array`); they stay `null` unless the add-on was requested and succeeded. `Article::hasEnrichment()` tells whether any add-on result is present.
+The results are returned as decoded JSON objects (`?array`); they stay `null` unless the add-on was requested and succeeded. `Article::hasEnrichment()` tells whether any add-on result is present. `with5w1h` extracts who, what, when, where, why and how. `withLanguageDetection` detects the language from the text while `Article::$language` keeps the value declared by the source. `withFixText` returns repaired text such as fixed mojibake in `Article::$fixedText` while `Article::$text` stays unchanged.
 
 ```php
 $result = $client->scrape(
@@ -110,6 +113,7 @@ $result = $client->scrape(
     withSentiment: true,
     withTags: true,
     withSummary: true,
+    with5w1h: true,
 );
 ```
 
