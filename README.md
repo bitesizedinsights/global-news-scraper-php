@@ -97,6 +97,42 @@ $result->entries
 $result->entries->groupBy('collection')->map->count();
 ```
 
+## How to Scrape All News Sources or a Whole Language in PHP
+
+Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Source`, `SourceGroup` and `Collector` cases (an array, a `Collection` or a single case). Groups and collectors are expanded to their sources, duplicates are removed and the usual planning applies.
+
+| Group | Sources |
+| --- | --- |
+| `SourceGroup::All` | every source of every collector (all 13 collectors run) |
+| `SourceGroup::English` | `us`, `uk`, `ng`, `sea`, `jp-en`, `tw-en` and Mexico News Daily |
+| `SourceGroup::Spanish` | Spain, Mexico and the Spanish-speaking part of Latin America |
+| `SourceGroup::French` | France |
+| `SourceGroup::Portuguese` | Brazil |
+| `SourceGroup::Indonesian` | Indonesia |
+| `SourceGroup::Arabic` | the Arabic-language press of the Middle East and North Africa |
+| `SourceGroup::Danish`, `SourceGroup::Norwegian`, `SourceGroup::Swedish` | the Scandinavian outlets per language |
+
+Every source belongs to exactly one language group: the language of the outlet's articles. `Source::language()` returns it and `SourceGroup::sources()` lists a group's sources.
+
+```php
+$client->scrape(SourceGroup::English, limit: 20);                          // one group
+$client->scrape([SourceGroup::Spanish, Source::Reuters], limit: 20);       // groups and single outlets
+$client->scrape(Collector::Us, limit: 20);                                 // everything one collector offers
+$client->plan(SourceGroup::All);                                           // the runs, without a request
+
+// leave outlets out by filtering the group first
+$sources = collect(SourceGroup::English->sources())->reject(fn (Source $s) => $s === Source::DailyStar);
+$client->scrape($sources, limit: 20);
+```
+
+Warnings:
+
+- Large groups start many collector runs, every one of them billed: $0.0002 per run plus the per-article price. `SourceGroup::All` is 13 runs, so at least $0.0026 even when nothing matches. Look at `plan()` first.
+- Always set `limit` with a group. It applies to each collector run, not to the merged result: 13 runs with `limit: 100` return up to 1,300 articles. Without a limit the Actor default of 100 per run applies.
+- The runs are processed `Config::$maxConcurrency` (default 2) at a time, so `SourceGroup::All` takes several waves of runs and can take a while.
+- A narrow `searchQuery` keeps the article bill small because only matching articles are returned and billed, but each run still pays its start fee and still processes the feeds.
+- Add-ons such as `withSummary` are billed per enriched article on top, so combine them with groups carefully.
+
 ## How to Search News Articles by Keyword in PHP
 
 Pass `searchQuery` to keep only articles whose title, text or URL contain the keyword (1 to 100 characters). It is sent to every collector run.
@@ -220,6 +256,7 @@ See [`examples/`](examples) for runnable scripts (set `APIFY_API_TOKEN` first):
 - `04-limit-and-merge.php`: sets `limit: 10`, which applies per collector run (four collectors return up to 40 articles), then filters to text articles with `isArticle()`, sorts newest first, and keeps the five latest titles per collector.
 - `05-analysis-addons.php`: switches on every paid analysis add-on (sentiment, tags, summary, 5W1H, language detection, text repair) for five articles per collector and prints each enrichment field. Add-ons are billed per enriched article on top of the article price.
 - `06-error-handling.php`: shows the three exceptions `scrape()` can throw (`InvalidInputException`, `MissingApiKeyException`, `ApiException`) and the non-throwing case: a failed collector run lands in `$result->errors` while the others still deliver, and `isComplete()` tells you whether the result is partial.
+- `07-source-groups.php`: a Spanish and Portuguese language brand monitor: mixes `SourceGroup::Spanish`, `SourceGroup::Portuguese`, a single `Source` and a `Collector`, previews the collector runs with `plan()` before paying for them, scrapes with `searchQuery`, `startDate` and `limit`, counts mentions per `collection` and shows how to filter a group before passing it on.
 
 ## Global News Scraper FAQ
 

@@ -137,8 +137,8 @@ test('invalid sources throw before any request', function (array|Collection $sou
 })->with([
     'empty array' => [[], 'At least one source is required'],
     'empty collection' => [new Collection, 'At least one source is required'],
-    'plain string' => [['reuters'], 'Sources must be GlobalNewsScraper\Source cases'],
-    'mixed' => [[Source::Reuters, 5], 'Sources must be GlobalNewsScraper\Source cases'],
+    'plain string' => [['reuters'], 'Sources must be Source, SourceGroup or Collector cases'],
+    'mixed' => [[Source::Reuters, 5], 'Sources must be Source, SourceGroup or Collector cases'],
 ]);
 
 test('a failing collector is reported while the others still return articles', function () {

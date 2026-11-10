@@ -69,7 +69,11 @@ final class Client
      * A failing collector run does not throw: it is reported in `ScrapeResult::$errors` and the other collectors'
      * articles are still returned.
      *
-     * @param  array<mixed>|Collection<array-key, mixed>  $sources  At least one `Source` case.
+     * What to scrape (`$sources`) can be a `Source`, a `SourceGroup` (`SourceGroup::All` or one language), a
+     * `Collector` (all sources it offers) or an array/collection mixing them. Groups and collectors are expanded and
+     * duplicates removed. Big selections start many billed collector runs: check `plan()` and set `limit` first.
+     *
+     * @param  array<mixed>|Collection<array-key, mixed>|Source|SourceGroup|Collector  $sources  Sources to scrape.
      * @param  string|null  $searchQuery  Keep only articles whose title, text or URL contain this keyword
      *                                    (1 to 100 characters). Filtering may process more articles than it returns.
      * @param  DateTimeInterface|string|null  $startDate  Only articles published on or after this day
@@ -92,7 +96,7 @@ final class Client
      * @throws MissingApiKeyException
      */
     public function scrape(
-        array|Collection $sources,
+        array|Collection|Source|SourceGroup|Collector $sources,
         ?string $searchQuery = null,
         DateTimeInterface|string|null $startDate = null,
         DateTimeInterface|string|null $endDate = null,
@@ -191,14 +195,18 @@ final class Client
     /**
      * Show which collector runs `scrape()` would start for these sources. Sends no request.
      *
-     * @param  array<mixed>|Collection<array-key, mixed>  $sources  `Source` cases.
+     * @param  array<mixed>|Collection<array-key, mixed>|Source|SourceGroup|Collector  $sources  As for `scrape()`.
      * @return list<RunPlan>
      *
      * @throws InvalidInputException
      */
-    public function plan(array|Collection $sources): array
+    public function plan(array|Collection|Source|SourceGroup|Collector $sources): array
     {
-        $list = $sources instanceof Collection ? $sources->all() : $sources;
+        $list = match (true) {
+            $sources instanceof Collection => $sources->all(),
+            is_array($sources) => $sources,
+            default => [$sources],
+        };
 
         if ($list === []) {
             throw new InvalidInputException('At least one source is required');
@@ -206,12 +214,18 @@ final class Client
 
         $unique = [];
 
-        foreach ($list as $source) {
-            if (! $source instanceof Source) {
-                throw new InvalidInputException('Sources must be '.Source::class.' cases');
-            }
+        foreach ($list as $item) {
+            $expanded = match (true) {
+                $item instanceof Source => [$item],
+                $item instanceof SourceGroup, $item instanceof Collector => $item->sources(),
+                default => throw new InvalidInputException(
+                    'Sources must be Source, SourceGroup or Collector cases',
+                ),
+            };
 
-            $unique[$source->value] = $source;
+            foreach ($expanded as $source) {
+                $unique[$source->value] = $source;
+            }
         }
 
         return Planner::plan(array_values($unique));
