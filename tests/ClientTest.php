@@ -3,12 +3,18 @@
 declare(strict_types=1);
 
 use GlobalNewsScraper\ArticleType;
+use GlobalNewsScraper\Client;
 use GlobalNewsScraper\Collector;
 use GlobalNewsScraper\Config;
 use GlobalNewsScraper\Exception\InvalidInputException;
 use GlobalNewsScraper\Exception\MissingApiKeyException;
 use GlobalNewsScraper\Source;
 use GlobalNewsScraper\SourceMap;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Collection;
 
@@ -511,4 +517,141 @@ test('all analysis add-ons can be combined and reach the article', function () {
     ])->and($article->fiveW1h)->toBe(['who' => 'Example'])
         ->and($article->detectedLanguage)->toBe(['language' => 'en'])
         ->and($article->fixedText)->toBe(['text' => 'Body text of the example article.']);
+});
+
+/**
+ * @param  list<Response|Throwable>  $responses
+ * @param  list<float>  $sleeps
+ */
+function retryClient(array $responses, array &$sleeps, ?Config $config = null): Client
+{
+    $client = new Client(
+        $config ?? new Config,
+        new GuzzleHttp\Client(['handler' => HandlerStack::create(new MockHandler($responses))]),
+        static function (float $seconds) use (&$sleeps): void {
+            $sleeps[] = $seconds;
+        },
+    );
+
+    return $client->setApifyKey('test-token');
+}
+
+function connectFailure(): ConnectException
+{
+    return new ConnectException('down', new Request('GET', '/'));
+}
+
+function runBody(string $status = 'SUCCEEDED'): Response
+{
+    return jsonResponse(201, ['data' => ['id' => 'r1', 'status' => $status, 'defaultDatasetId' => 'd1']]);
+}
+
+test('a GET is retried after 5xx and connection failures with growing delays', function () {
+    $sleeps = [];
+    $client = retryClient([
+        runBody(),
+        new Response(503, [], '{}'),
+        connectFailure(),
+        new Response(200, [], json_encode([article('https://a.test/1')], JSON_THROW_ON_ERROR)),
+    ], $sleeps);
+
+    $result = $client->scrape([Source::Reuters]);
+
+    expect($result->entries)->toHaveCount(1)
+        ->and($sleeps)->toHaveCount(2)
+        ->and($sleeps[0])->toBeBetween(0.5, 1.0)
+        ->and($sleeps[1])->toBeBetween(1.0, 2.0);
+});
+
+test('retrying stops after maxRetries', function () {
+    $sleeps = [];
+    $client = retryClient(
+        [runBody(), new Response(500, [], '{}'), new Response(500, [], '{}'), new Response(500, [], '{}')],
+        $sleeps,
+        new Config(maxRetries: 2),
+    );
+
+    $result = $client->scrape([Source::Reuters]);
+
+    expect($result->errors->first()->message)->toContain('status 500')->and($sleeps)->toHaveCount(2);
+});
+
+test('the run start is retried after 429 and a failed connection', function () {
+    $sleeps = [];
+    $client = retryClient([
+        new Response(429, ['Retry-After' => '3'], '{}'),
+        connectFailure(),
+        runBody(),
+        new Response(200, [], '[]'),
+    ], $sleeps);
+
+    $result = $client->scrape([Source::Reuters]);
+
+    expect($result->isComplete())->toBeTrue()
+        ->and($sleeps)->toHaveCount(2)
+        ->and($sleeps[0])->toBeGreaterThanOrEqual(3.0);
+});
+
+test('the run start is never retried after 5xx or a timeout', function (Response|Throwable $failure) {
+    $sleeps = [];
+    $result = retryClient([$failure, runBody(), new Response(200, [], '[]')], $sleeps)->scrape([Source::Reuters]);
+
+    expect($result->errors)->toHaveCount(1)->and($sleeps)->toBeEmpty();
+})->with([
+    '500' => fn () => new Response(500, [], '{}'),
+    '503' => fn () => new Response(503, [], '{}'),
+    'timeout' => fn () => new RequestException(
+        'cURL error 28: timed out',
+        new Request('POST', '/'),
+    ),
+]);
+
+test('4xx other than 429 is not retried', function () {
+    $sleeps = [];
+    $result = retryClient([new Response(400, [], '{}')], $sleeps)->scrape([Source::Reuters]);
+
+    expect($result->errors)->toHaveCount(1)->and($sleeps)->toBeEmpty();
+});
+
+test('Retry-After is read as seconds or as HTTP date and a missing one falls back to backoff', function () {
+    $sleeps = [];
+    $date = gmdate('D, d M Y H:i:s \G\M\T', time() + 10);
+
+    retryClient([
+        new Response(429, ['Retry-After' => '7'], '{}'),
+        new Response(429, ['Retry-After' => $date], '{}'),
+        new Response(429, [], '{}'),
+        runBody(),
+        new Response(200, [], '[]'),
+    ], $sleeps)->scrape([Source::Reuters]);
+
+    expect($sleeps)->toHaveCount(3)
+        ->and($sleeps[0])->toBe(7.0)
+        ->and($sleeps[1])->toBeBetween(8.0, 10.0)
+        ->and($sleeps[2])->toBeBetween(2.0, 4.0);
+});
+
+test('a Retry-After above retryMaxDelay is not waited out', function () {
+    $sleeps = [];
+    $result = retryClient([new Response(429, ['Retry-After' => '120'], '{}')], $sleeps)->scrape([Source::Reuters]);
+
+    expect($sleeps)->toBeEmpty()->and($result->errors->first()->message)->toBe('Rate limit exceeded');
+});
+
+test('maxRetries 0 turns retrying off', function () {
+    $sleeps = [];
+    $result = retryClient([new Response(429, [], '{}')], $sleeps, new Config(maxRetries: 0))->scrape([Source::Reuters]);
+
+    expect($sleeps)->toBeEmpty()->and($result->errors)->toHaveCount(1);
+});
+
+test('the delay is capped at retryMaxDelay', function () {
+    $sleeps = [];
+    retryClient(
+        [runBody(), new Response(500, [], '{}'), new Response(500, [], '{}'), new Response(200, [], '[]')],
+        $sleeps,
+        new Config(retryBaseDelay: 10.0, retryMaxDelay: 12.0),
+    )->scrape([Source::Reuters]);
+
+    expect($sleeps[0])->toBeBetween(5.0, 10.0)->and($sleeps[1])->toBeBetween(6.0, 12.0);
 });

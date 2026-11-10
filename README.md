@@ -225,7 +225,21 @@ $client = (new Client(new Config(maxConcurrency: 3, timeout: 1200)))->setApifyKe
 | `maxConcurrency` | 2 | Collector runs active at the same time. Every run already fetches several articles in parallel on the shared news backend, so the default of 2 keeps the load moderate. Raise it for faster multi-country runs. |
 | `timeout` | 900 | Seconds to wait for each collector run to finish. |
 | `requestTimeout` | 90 | Timeout in seconds of a single HTTP request. |
+| `maxRetries` | 3 | How often a failed request is repeated (0 turns retrying off). See below. |
+| `retryBaseDelay` | 1.0 | Seconds before the first retry; doubles with each retry. |
+| `retryMaxDelay` | 30.0 | Longest wait before a retry. |
 | `baseUrl` | `https://api.apify.com/v2` | Apify API base URL. |
+
+### Retries and Backoff
+
+Failed requests are retried automatically, by default up to 3 times with exponential backoff (1 s, 2 s, 4 s, each with 50 to 100 percent jitter, at most 30 s):
+
+- **Rate limits (429):** retried after at least the `Retry-After` time, given in seconds or as an HTTP date. Without the header the backoff delay is used. If the server asks for more than `retryMaxDelay`, the run fails right away with a `RateLimitException`.
+- **Server errors (5xx) and connection failures:** retried for polling and reading results.
+- **Starting a run:** only retried after a 429 or a failed connection. After a 5xx or a timeout the run may already exist, and a repeat would be billed twice, so the error is reported instead.
+- **Other errors (4xx):** never retried.
+
+A collector that still fails after the retries is reported in `ScrapeResult::$errors` as before.
 
 ## News Sources and Collectors Included
 

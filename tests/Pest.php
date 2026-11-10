@@ -32,11 +32,18 @@ function makeClient(
     array &$history = [],
     ?Config $config = null,
     ?string $apiKey = 'test-token',
+    array &$sleeps = [],
 ): Client {
     $stack = HandlerStack::create(new FakeApify($actors));
     $stack->push(Middleware::history($history));
 
-    $client = new Client($config, new HttpClient(['handler' => $stack]));
+    $client = new Client(
+        $config ?? new Config(maxRetries: 0),
+        new HttpClient(['handler' => $stack]),
+        static function (float $seconds) use (&$sleeps): void {
+            $sleeps[] = $seconds;
+        },
+    );
 
     return $apiKey === null ? $client : $client->setApifyKey($apiKey);
 }

@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- Automatic retrying with exponential backoff and jitter (`Config::$maxRetries`, `$retryBaseDelay`, `$retryMaxDelay`): rate limits honour `Retry-After` (seconds or HTTP date, a missing header falls back to the backoff), 5xx and connection failures are retried, and starting a run is not repeated after a 5xx or timeout. `Client` takes an optional sleeper as third constructor argument.
 - `SourceGroup` enum (`All` and one case per language: English, Spanish, French, Portuguese, Indonesian, Arabic, Danish, Norwegian, Swedish) and `Source::language()`.
 - `Client::scrape()` and `Client::plan()` accept a `Source`, `SourceGroup` or `Collector` (alone or mixed in an array or collection); groups and collectors are expanded and deduplicated.
 - Example `07-source-groups.php`.

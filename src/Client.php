@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GlobalNewsScraper;
 
+use Closure;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
@@ -19,6 +20,7 @@ use GlobalNewsScraper\Support\Planner;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\BadResponseException;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Promise\Coroutine;
 use GuzzleHttp\Promise\Create;
@@ -45,10 +47,19 @@ final class Client
 
     private ?string $apiKey = null;
 
-    public function __construct(?Config $config = null, ?ClientInterface $http = null)
+    /** @var Closure(float): void */
+    private readonly Closure $sleeper;
+
+    /**
+     * @param  (Closure(float): void)|null  $sleeper  Waits the given seconds between retries; replaced in tests.
+     */
+    public function __construct(?Config $config = null, ?ClientInterface $http = null, ?Closure $sleeper = null)
     {
         $this->config = $config ?? new Config;
         $this->http = $http ?? new HttpClient;
+        $this->sleeper = $sleeper ?? static function (float $seconds): void {
+            usleep((int) round($seconds * 1_000_000));
+        };
     }
 
     /**
@@ -407,6 +418,10 @@ final class Client
     }
 
     /**
+     * Sends a request and retries what is safe to repeat: rate limits (429, the request was not processed), server
+     * errors (5xx) and connection failures. Starting a run (POST) is only repeated after a 429 or a failed
+     * connection, because after a 5xx or a timeout the run may already exist and a repeat would bill it twice.
+     *
      * @param  array<string, mixed>  $options
      * @return PromiseInterface Resolves to the decoded JSON body.
      */
@@ -417,13 +432,85 @@ final class Client
             'Accept' => 'application/json',
         ];
         $options['timeout'] = $this->config->requestTimeout;
+        $url = rtrim($this->config->baseUrl, '/').$path;
 
-        return $this->http
-            ->requestAsync($method, rtrim($this->config->baseUrl, '/').$path, $options)
-            ->then(
-                fn (ResponseInterface $response): array => $this->decode($response),
-                fn (mixed $reason): never => throw $this->failure($reason),
-            );
+        return Coroutine::of(function () use ($method, $url, $options) {
+            for ($attempt = 0; ; $attempt++) {
+                try {
+                    $response = yield $this->http->requestAsync($method, $url, $options);
+
+                    $decoded = $this->decode($response);
+                } catch (BadResponseException $e) {
+                    $status = $e->getResponse()->getStatusCode();
+                    $retryAfter = $status === 429 ? $this->retryAfter($e->getResponse()) : null;
+                    $retryable = $status === 429 || ($status >= 500 && $method !== 'POST');
+                    $delay = $retryable && $attempt < $this->config->maxRetries
+                        ? $this->retryDelay($attempt, $retryAfter)
+                        : null;
+
+                    if ($delay === null) {
+                        throw $this->failure($e, $this->retryDelay($attempt, null, false));
+                    }
+
+                    ($this->sleeper)($delay);
+
+                    continue;
+                } catch (ApiException $e) {
+                    throw $e;
+                } catch (GuzzleException $e) {
+                    // A failed connection never reached the server, so it is safe to repeat even for POST.
+                    $retryable = $e instanceof ConnectException || $method !== 'POST';
+
+                    if ($retryable && $attempt < $this->config->maxRetries) {
+                        ($this->sleeper)($this->retryDelay($attempt, null) ?? 0.0);
+
+                        continue;
+                    }
+
+                    throw $this->failure($e);
+                }
+
+                yield Create::promiseFor($decoded);
+
+                return;
+            }
+        });
+    }
+
+    /**
+     * Seconds to wait before the next retry: exponential from the base delay with 50 to 100 percent jitter, at least
+     * the server's `Retry-After`. Null when the server asks for a longer wait than the configured maximum.
+     */
+    private function retryDelay(int $attempt, ?int $retryAfter, bool $jitter = true): ?float
+    {
+        if ($retryAfter !== null && $retryAfter > $this->config->retryMaxDelay) {
+            return null;
+        }
+
+        $backoff = min($this->config->retryMaxDelay, $this->config->retryBaseDelay * (2 ** $attempt));
+        $jittered = $jitter ? $backoff * (random_int(500, 1000) / 1000) : $backoff;
+
+        return max($jittered, (float) ($retryAfter ?? 0));
+    }
+
+    /**
+     * `Retry-After` in seconds, from either the numeric or the HTTP-date form. Null when missing or unusable.
+     */
+    private function retryAfter(ResponseInterface $response): ?int
+    {
+        $value = trim($response->getHeaderLine('Retry-After'));
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (ctype_digit($value)) {
+            return (int) $value;
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp === false ? null : max(0, $timestamp - time());
     }
 
     /**
@@ -444,13 +531,13 @@ final class Client
         return $decoded;
     }
 
-    private function failure(mixed $reason): Throwable
+    private function failure(mixed $reason, ?float $fallbackRetryAfter = null): Throwable
     {
         if ($reason instanceof BadResponseException) {
             $response = $reason->getResponse();
 
             if ($response->getStatusCode() === 429) {
-                $retryAfter = (int) ($response->getHeaderLine('Retry-After') ?: 60);
+                $retryAfter = $this->retryAfter($response) ?? (int) ceil($fallbackRetryAfter ?? 1.0);
 
                 return new RateLimitException('Rate limit exceeded', $retryAfter);
             }
