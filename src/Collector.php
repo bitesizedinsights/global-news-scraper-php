@@ -46,6 +46,16 @@ enum Collector: string
     }
 
     /**
+     * Sources this collector offers.
+     *
+     * @return list<Source>
+     */
+    public function sources(): array
+    {
+        return array_map(Source::from(...), SourceMap::BY_COLLECTOR[$this->value]);
+    }
+
+    /**
      * Name of the collector in the source repository, e.g. `news-collector-us`.
      */
     public function actorName(): string
