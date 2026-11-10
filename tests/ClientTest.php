@@ -439,3 +439,38 @@ test('limit 10000 is accepted', function () {
 
     expect(sentBody($history[0]['request'])['limit'])->toBe(10000);
 });
+
+test('analysis flags are sent to every collector run when enabled', function (string $param, string $flag) {
+    $history = [];
+    $client = makeClient([UK => [], US => []], $history);
+
+    $client->scrape([Source::BbcNews, Source::Reuters], ...[$param => true]);
+
+    $posts = array_values(array_filter($history, fn ($h) => $h['request']->getMethod() === 'POST'));
+
+    expect(sentBody($posts[0]['request'])[$flag])->toBeTrue()
+        ->and(sentBody($posts[1]['request'])[$flag])->toBeTrue();
+})->with([
+    'sentiment' => ['withSentiment', 'with_sentiment'],
+    'tags' => ['withTags', 'with_tags'],
+    'summary' => ['withSummary', 'with_summary'],
+]);
+
+test('analysis flags are omitted by default', function () {
+    $history = [];
+    makeClient([US => []], $history)->scrape([Source::Reuters]);
+
+    expect(array_keys(sentBody($history[0]['request'])))->not->toContain('with_sentiment', 'with_tags', 'with_summary');
+});
+
+test('enriched articles expose the analysis results', function () {
+    $client = makeClient([UK => ['items' => [loadFixture('article_enriched')]]]);
+
+    $article = $client->scrape([Source::BbcNews], withSentiment: true, withTags: true, withSummary: true)
+        ->entries->first();
+
+    expect($article->hasEnrichment())->toBeTrue()
+        ->and($article->sentiment)->toBe(['sentiment' => 'positive'])
+        ->and($article->tags)->toBe(['tags' => ['politics']])
+        ->and($article->summary)->toBe(['summary' => 'Short summary.']);
+});

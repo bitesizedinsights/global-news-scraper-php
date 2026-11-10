@@ -91,9 +91,31 @@ $result = $client->scrape(
 );
 ```
 
+## How to Add Sentiment, Tags and Summaries to News Articles in PHP
+
+Three optional add-ons enrich each article. They are billed per enriched article on top of the article price; articles that fail or are too short are skipped and not charged.
+
+| Parameter | Result property | Price per 1,000 articles |
+| --- | --- | --- |
+| `withSentiment` | `Article::$sentiment` | $0.20 |
+| `withTags` | `Article::$tags` | $1.50 |
+| `withSummary` | `Article::$summary` | $2.50 |
+
+The results are returned as decoded JSON objects (`?array`); they stay `null` unless the add-on was requested and succeeded. `Article::hasEnrichment()` tells whether any add-on result is present.
+
+```php
+$result = $client->scrape(
+    sources: [Source::Reuters, Source::BbcNews],
+    limit: 5,
+    withSentiment: true,
+    withTags: true,
+    withSummary: true,
+);
+```
+
 ## PHP Examples
 
-See [`examples/`](examples) for runnable scripts: `01-basic.php`, `02-search-query.php`, `03-date-range.php`, `04-limit-and-merge.php`.
+See [`examples/`](examples) for runnable scripts: `01-basic.php`, `02-search-query.php`, `03-date-range.php`, `04-limit-and-merge.php`, `05-analysis-addons.php`.
 
 ## Requirements
 

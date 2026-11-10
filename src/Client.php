@@ -79,6 +79,9 @@ final class Client
      * @param  int|null  $limit  Maximum articles per collector run, 0 to 10000 (0 = unlimited). Null keeps the Actor
      *                           default of 100. The limit applies to each run, not to the merged result, and the
      *                           Actors may process more articles than they return when other filters are set.
+     * @param  bool  $withSentiment  Add a sentiment score to each article (`Article::$sentiment`).
+     * @param  bool  $withTags  Add category tags to each article (`Article::$tags`).
+     * @param  bool  $withSummary  Add a compact summary to each article (`Article::$summary`).
      *
      * @throws InvalidInputException
      * @throws MissingApiKeyException
@@ -89,6 +92,9 @@ final class Client
         DateTimeInterface|string|null $startDate = null,
         DateTimeInterface|string|null $endDate = null,
         ?int $limit = null,
+        bool $withSentiment = false,
+        bool $withTags = false,
+        bool $withSummary = false,
     ): ScrapeResult {
         $plans = $this->plan($sources);
 
@@ -128,6 +134,16 @@ final class Client
             }
 
             $options['limit'] = $limit;
+        }
+
+        foreach ([
+            'with_sentiment' => $withSentiment,
+            'with_tags' => $withTags,
+            'with_summary' => $withSummary,
+        ] as $flag => $enabled) {
+            if ($enabled) {
+                $options[$flag] = true;
+            }
         }
 
         $this->resolveApiKey();
