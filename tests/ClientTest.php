@@ -309,3 +309,39 @@ test('without any key the first call throws before a request is sent', function 
             ->and($history)->toBe([]);
     });
 });
+
+test('searchQuery is sent to every collector run', function () {
+    $history = [];
+    $client = makeClient([UK => [], US => []], $history);
+
+    $client->scrape([Source::BbcNews, Source::Reuters], searchQuery: '  climate  ');
+
+    $posts = array_values(array_filter($history, fn ($h) => $h['request']->getMethod() === 'POST'));
+
+    expect($posts)->toHaveCount(2)
+        ->and(sentBody($posts[0]['request'])['search_query'])->toBe('climate')
+        ->and(sentBody($posts[1]['request'])['search_query'])->toBe('climate');
+});
+
+test('searchQuery is omitted when not set', function () {
+    $history = [];
+    makeClient([US => []], $history)->scrape([Source::Reuters]);
+
+    expect(sentBody($history[0]['request']))->not->toHaveKey('search_query');
+});
+
+test('an invalid searchQuery throws before any request', function (string $query) {
+    $history = [];
+    $client = makeClient([], $history);
+
+    expect(fn () => $client->scrape([Source::Reuters], searchQuery: $query))
+        ->toThrow(InvalidInputException::class, 'searchQuery must be 1 to 100 characters')
+        ->and($history)->toBe([]);
+})->with(['empty' => [''], 'blank' => ['   '], 'too long' => [str_repeat('a', 101)]]);
+
+test('a searchQuery of 100 characters is accepted', function () {
+    $history = [];
+    makeClient([US => []], $history)->scrape([Source::Reuters], searchQuery: str_repeat('é', 100));
+
+    expect(mb_strlen(sentBody($history[0]['request'])['search_query']))->toBe(100);
+});

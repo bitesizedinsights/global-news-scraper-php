@@ -55,9 +55,22 @@ $result->entries
 $result->entries->groupBy('collection')->map->count();
 ```
 
+## How to Search News Articles by Keyword in PHP
+
+Pass `searchQuery` to keep only articles whose title, text or URL contain the keyword (1 to 100 characters). It is sent to every collector run.
+
+```php
+$result = $client->scrape(
+    sources: [Source::Reuters, Source::TheGuardian, Source::Rappler],
+    searchQuery: 'semiconductor',
+);
+```
+
+Keyword filtering can make a collector process more articles than it returns.
+
 ## PHP Examples
 
-See [`examples/`](examples) for runnable scripts: `01-basic.php`.
+See [`examples/`](examples) for runnable scripts: `01-basic.php`, `02-search-query.php`.
 
 ## Requirements
 

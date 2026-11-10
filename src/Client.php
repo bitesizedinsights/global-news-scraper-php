@@ -67,18 +67,36 @@ final class Client
      * articles are still returned.
      *
      * @param  array<mixed>|Collection<array-key, mixed>  $sources  At least one `Source` case.
+     * @param  string|null  $searchQuery  Keep only articles whose title, text or URL contain this keyword
+     *                                    (1 to 100 characters). Filtering may process more articles than it returns.
      *
      * @throws InvalidInputException
      * @throws MissingApiKeyException
      */
-    public function scrape(array|Collection $sources): ScrapeResult
+    public function scrape(array|Collection $sources, ?string $searchQuery = null): ScrapeResult
     {
         $plans = $this->plan($sources);
-        $this->resolveApiKey();
 
         $options = [];
 
+        if ($searchQuery !== null) {
+            $options['search_query'] = $this->searchQuery($searchQuery);
+        }
+
+        $this->resolveApiKey();
+
         return $this->execute($plans, $options);
+    }
+
+    private function searchQuery(string $query): string
+    {
+        $query = trim($query);
+
+        if ($query === '' || mb_strlen($query) > 100) {
+            throw new InvalidInputException('searchQuery must be 1 to 100 characters');
+        }
+
+        return $query;
     }
 
     /**
