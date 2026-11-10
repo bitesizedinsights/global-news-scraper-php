@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Changed
+
+- `limit` above 10000 now throws `InvalidInputException` before any request, mirroring the maximum of the Actor input schemas, instead of failing every collector run. `searchQuery` (1-100 characters), dates and `limit >= 0` were already validated.
+
 ### Added
 
 - Automatic retrying with exponential backoff and jitter (`Config::$maxRetries`, `$retryBaseDelay`, `$retryMaxDelay`): rate limits honour `Retry-After` (seconds or HTTP date, a missing header falls back to the backoff), 5xx and connection failures are retried, and starting a run is not repeated after a 5xx or timeout. `Client` takes an optional sleeper as third constructor argument.

@@ -91,7 +91,7 @@ final class Client
      *                                                    (`YYYY-MM-DD` or a date object, not in the future).
      * @param  DateTimeInterface|string|null  $endDate  Only articles published on or before this day
      *                                                  (`YYYY-MM-DD` or a date object, not older than 5 years).
-     * @param  int|null  $limit  Maximum articles per collector run, 0 or more (0 = unlimited). Null keeps the Actor
+     * @param  int|null  $limit  Maximum articles per collector run, 0 to 10000 (0 = unlimited). Null keeps the Actor
      *                           default of 100. The limit applies to each run, not to the merged result, and the
      *                           Actors may process more articles than they return when other filters are set.
      * @param  bool  $withSentiment  Add a sentiment score to each article (`Article::$sentiment`).
@@ -154,6 +154,10 @@ final class Client
         if ($limit !== null) {
             if ($limit < 0) {
                 throw new InvalidInputException('limit must not be negative');
+            }
+
+            if ($limit > 10000) {
+                throw new InvalidInputException('limit must not be greater than 10000');
             }
 
             $options['limit'] = $limit;

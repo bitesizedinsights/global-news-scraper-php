@@ -163,7 +163,7 @@ $result = $client->scrape(
 
 ## How to Limit the Number of News Articles in PHP
 
-`limit` is the maximum number of articles per collector run (0 or more, 0 means unlimited). Without it the Actor default of 100 applies. The limit counts for each run, not for the merged result: two collectors with `limit: 10` return up to 20 articles. Filters such as `searchQuery` can make an Actor process more articles than it returns.
+`limit` is the maximum number of articles per collector run (0 to 10000, 0 means unlimited; a negative value or more than 10000 throws `InvalidInputException` before any request, as the Actors reject it). Without it the Actor default of 100 applies. The limit counts for each run, not for the merged result: two collectors with `limit: 10` return up to 20 articles. Filters such as `searchQuery` can make an Actor process more articles than it returns.
 
 ```php
 $result = $client->scrape(
@@ -306,7 +306,7 @@ The other collectors' articles are still returned and the failure is listed in `
 
 ### How many articles can I get?
 
-`limit` is the maximum per collector run, (0 means unlimited, the Actor default is 100). Date filters only accept `YYYY-MM-DD` days: `startDate` must not be in the future, `endDate` not older than 5 years.
+`limit` is the maximum per collector run, (0 to 10000, 0 means unlimited, the Actor default is 100). Date filters only accept `YYYY-MM-DD` days: `startDate` must not be in the future, `endDate` not older than 5 years.
 
 ### Does it work without Laravel?
 

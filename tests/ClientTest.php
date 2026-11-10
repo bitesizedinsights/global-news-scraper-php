@@ -439,12 +439,21 @@ test('negative limit throws before any request', function (int $limit) {
         ->and($history)->toBe([]);
 })->with([-1, PHP_INT_MIN]);
 
-test('limit has no upper bound', function (int $limit) {
+test('limit above the Actor maximum of 10000 throws before any request', function (int $limit) {
     $history = [];
-    makeClient([US => []], $history)->scrape([Source::Reuters], limit: $limit);
+    $client = makeClient([], $history);
 
-    expect(sentBody($history[0]['request'])['limit'])->toBe($limit);
-})->with([10001, 1_000_000, PHP_INT_MAX]);
+    expect(fn () => $client->scrape([Source::Reuters], limit: $limit))
+        ->toThrow(InvalidInputException::class, 'limit must not be greater than 10000')
+        ->and($history)->toBe([]);
+})->with([10001, 50000, PHP_INT_MAX]);
+
+test('limit of 10000 is accepted', function () {
+    $history = [];
+    makeClient([US => []], $history)->scrape([Source::Reuters], limit: 10000);
+
+    expect(sentBody($history[0]['request'])['limit'])->toBe(10000);
+});
 
 test('analysis flags are sent to every collector run when enabled', function (string $param, string $flag) {
     $history = [];
