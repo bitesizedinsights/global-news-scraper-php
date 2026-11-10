@@ -30,6 +30,13 @@ enum Collector: string
     case Tr = 'tr';
     case It = 'it';
     case De = 'de';
+    case Au = 'au';
+    case Ca = 'ca';
+    case IdEn = 'id-en';
+    case IlEn = 'il-en';
+    case InEn = 'in-en';
+    case KrEn = 'kr-en';
+    case PkEn = 'pk-en';
 
     /**
      * Public Apify Actor ID (`username/name`).
@@ -58,6 +65,13 @@ enum Collector: string
             self::Tr => 'turkey-news-scraper',
             self::It => 'italian-news-article-scraper',
             self::De => 'german-news-scraper',
+            self::Au => 'australian-news-article-scraper',
+            self::Ca => 'canada-news-scraper',
+            self::IdEn => 'indonesia-english-news-scraper',
+            self::IlEn => 'english-israel-news-scraper',
+            self::InEn => 'india-english-news-scraper',
+            self::KrEn => 'korean-news-article-scraper',
+            self::PkEn => 'pakistan-english-news-articles-scraper',
         };
     }
 

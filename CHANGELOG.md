@@ -23,6 +23,13 @@ All notable changes to this project are documented in this file. The format is b
 - `tr` collector (Turkey, 11 outlets) and `SourceGroup::Turkish`.
 - `it` collector (Italy, 10 outlets) and `SourceGroup::Italian`.
 - `de` collector (Germany, 6 outlets) and `SourceGroup::German`.
+- `au` collector (Australia, English, 31 outlets, 29 of them new).
+- `ca` collector (Canada, English, 21 outlets).
+- `id-en` collector (Indonesia, English, 3 outlets, all also offered by `sea`).
+- `il-en` collector (Israel, English, 7 outlets).
+- `in-en` collector (India, English, 15 outlets).
+- `kr-en` collector (South Korea, English, 8 outlets).
+- `pk-en` collector (Pakistan, English, 11 outlets, 10 of them new).
 
 ## [0.1.0] - 2026-11-08
 

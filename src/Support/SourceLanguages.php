@@ -41,6 +41,13 @@ final class SourceLanguages
         'tr' => SourceGroup::Turkish,
         'it' => SourceGroup::Italian,
         'de' => SourceGroup::German,
+        'au' => SourceGroup::English,
+        'ca' => SourceGroup::English,
+        'id-en' => SourceGroup::English,
+        'il-en' => SourceGroup::English,
+        'in-en' => SourceGroup::English,
+        'kr-en' => SourceGroup::English,
+        'pk-en' => SourceGroup::English,
     ];
 
     /** @var array<string, SourceGroup> */

@@ -62,7 +62,9 @@ test('languages are assigned as documented', function () {
         ->and(Source::Onet->language())->toBe(SourceGroup::Polish)
         ->and(Source::Sabah->language())->toBe(SourceGroup::Turkish)
         ->and(Source::IlGiornale->language())->toBe(SourceGroup::Italian)
-        ->and(Source::Bild->language())->toBe(SourceGroup::German);
+        ->and(Source::Bild->language())->toBe(SourceGroup::German)
+        ->and(Source::CbcNews->language())->toBe(SourceGroup::English)
+        ->and(Source::Dawn->language())->toBe(SourceGroup::English);
 });
 
 test('a group plans the collectors that offer its sources', function () {
@@ -84,13 +86,15 @@ test('a group plans the collectors that offer its sources', function () {
         ->and($collectors(SourceGroup::German))->toBe(['de']);
 });
 
-test('All plans every collector once', function () {
+// `id-en` offers only outlets that `sea` covers as well, so the planner never needs a run for it.
+test('All plans every collector once, except one that is fully covered by another', function () {
     $plans = (new Client)->plan(SourceGroup::All);
     $collectors = array_map(fn ($plan) => $plan->collector, $plans);
     $assigned = array_merge(...array_map(fn ($plan) => $plan->sources, $plans));
 
-    expect($plans)->toHaveCount(count(Collector::cases()))
-        ->and(array_unique(array_map(fn ($c) => $c->value, $collectors)))->toHaveCount(count(Collector::cases()))
+    expect($plans)->toHaveCount(count(Collector::cases()) - 1)
+        ->and($collectors)->not->toContain(Collector::IdEn)
+        ->and(array_unique(array_map(fn ($c) => $c->value, $collectors)))->toHaveCount(count(Collector::cases()) - 1)
         ->and($assigned)->toHaveCount(count(Source::cases()));
 });
 
