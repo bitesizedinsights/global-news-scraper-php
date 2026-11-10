@@ -212,7 +212,14 @@ Three outlets (`La Jornada`, `Excelsior`, `El Financiero`) are offered by both `
 
 ## Global News Scraper PHP Examples
 
-See [`examples/`](examples) for runnable scripts: `01-basic.php`, `02-search-query.php`, `03-date-range.php`, `04-limit-and-merge.php`, `05-analysis-addons.php`, `06-error-handling.php`.
+See [`examples/`](examples) for runnable scripts (set `APIFY_API_TOKEN` first):
+
+- `01-basic.php`: scrapes three outlets from three countries (New York Times, BBC News, Taipei Times) in one call, merges them into a single article collection, and prints the total plus a per-collector count via each article's `collection` field. Failed collectors are listed from `$result->errors`.
+- `02-search-query.php`: passes `searchQuery` to keep only articles whose title, text or URL contain a keyword (here `semiconductor`) across Reuters, The Guardian and Rappler, and prints `[collection] title` per match.
+- `03-date-range.php`: restricts the run to the last seven days with `startDate` and `endDate` (a `DateTimeImmutable` and a `YYYY-MM-DD` string; both types are accepted) and prints the articles newest first, sorted by `datePublish`.
+- `04-limit-and-merge.php`: sets `limit: 10`, which applies per collector run (four collectors return up to 40 articles), then filters to text articles with `isArticle()`, sorts newest first, and keeps the five latest titles per collector.
+- `05-analysis-addons.php`: switches on every paid analysis add-on (sentiment, tags, summary, 5W1H, language detection, text repair) for five articles per collector and prints each enrichment field. Add-ons are billed per enriched article on top of the article price.
+- `06-error-handling.php`: shows the three exceptions `scrape()` can throw (`InvalidInputException`, `MissingApiKeyException`, `ApiException`) and the non-throwing case: a failed collector run lands in `$result->errors` while the others still deliver, and `isComplete()` tells you whether the result is partial.
 
 ## Global News Scraper FAQ
 
