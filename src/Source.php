@@ -592,6 +592,18 @@ enum Source: string
     case Quote = 'quote';
     case Emerce = 'emerce';
     case OmroepBrabant = 'omroep_brabant';
+    case PilipinoStarNgayon = 'pilipino_star_ngayon';
+    case PangMasa = 'pang_masa';
+    case AbanteTonite = 'abante_tonite';
+    case GmaUlatFilipino = 'gma_ulat_filipino';
+    case Banat = 'banat';
+    case BosesTiAmianan = 'boses_ti_amianan';
+    case IlocosTimesIluko = 'ilocos_times_iluko';
+    case BomboRadyoIloilo = 'bombo_radyo_iloilo';
+    case BomboRadyoBacolod = 'bombo_radyo_bacolod';
+    case BomboRadyoLegazpi = 'bombo_radyo_legazpi';
+    case BomboRadyoNaga = 'bombo_radyo_naga';
+    case BomboRadyoTacloban = 'bombo_radyo_tacloban';
     case Jang = 'jang';
     case ExpressUrdu = 'express_urdu';
     case NawaIWaqt = 'nawa_i_waqt';
@@ -617,6 +629,17 @@ enum Source: string
     case UltimaHora = 'ultima_hora';
     case LaNacionPy = 'la_nacion_py';
     case CincoDias = 'cinco_dias';
+    case LibertyTimes = 'liberty_times';
+    case CnaZh = 'cna_zh';
+    case Ettoday = 'ettoday';
+    case Pts = 'pts';
+    case Newtalk = 'newtalk';
+    case EconomicDaily = 'economic_daily';
+    case Ithome = 'ithome';
+    case Technews = 'technews';
+    case StormMedia = 'storm_media';
+    case Cdns = 'cdns';
+    case CentralTaiwanTimes = 'central_taiwan_times';
 
     /**
      * Display name of the outlet.

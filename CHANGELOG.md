@@ -36,9 +36,11 @@ All notable changes to this project are documented in this file. The format is b
 - `kr-en` collector (South Korea, English, 8 outlets).
 - `kurdish` collector (Kurdish media, 9 outlets) and `SourceGroup::Kurmanji`, `Sorani` and `Zazaki`.
 - `nl` collector (Netherlands, Dutch, 6 outlets) and `SourceGroup::Dutch`.
+- `ph` collector (Philippines, 26 outlets, 12 of them new) and `SourceGroup::Tagalog`, `Cebuano`, `Ilocano`, `Hiligaynon`, `Bikol` and `Waray`.
 - `pk` collector (Pakistan, 12 outlets) and `SourceGroup::Urdu`, `Pashto`, `Sindhi` and `Saraiki`.
 - `pk-en` collector (Pakistan, English, 11 outlets, 10 of them new).
 - `py` collector (Paraguay, Spanish, 4 outlets, 3 of them new).
+- `tw` collector (Taiwan, Traditional Chinese, 11 outlets) and `SourceGroup::Chinese`.
 
 ## [0.1.0] - 2026-11-08
 

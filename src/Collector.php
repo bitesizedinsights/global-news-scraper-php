@@ -43,9 +43,11 @@ enum Collector: string
     case KrEn = 'kr-en';
     case Kurdish = 'kurdish';
     case Nl = 'nl';
+    case Ph = 'ph';
     case Pk = 'pk';
     case PkEn = 'pk-en';
     case Py = 'py';
+    case Tw = 'tw';
 
     /**
      * Public Apify Actor ID (`username/name`).
@@ -87,9 +89,11 @@ enum Collector: string
             self::KrEn => 'korean-news-article-scraper',
             self::Kurdish => 'kurdish-news-scraper',
             self::Nl => 'dutch-news-scraper',
+            self::Ph => 'philippine-news-scraper',
             self::Pk => 'pakistani-news-scraper',
             self::PkEn => 'pakistan-english-news-articles-scraper',
             self::Py => 'paraguay-news-scraper',
+            self::Tw => 'taiwan-news-search-scraper',
         };
     }
 

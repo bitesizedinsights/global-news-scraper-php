@@ -35,11 +35,25 @@ enum SourceGroup: string
     case Dutch = 'nl';
     case Hebrew = 'he';
     case Hindi = 'hi';
+    /** Traditional Chinese (Taiwan). */
+    case Chinese = 'zh';
     case Urdu = 'ur';
     case Pashto = 'ps';
     case Sindhi = 'sd';
     /** Saraiki: ISO 639-3 code, it has no ISO 639-1 code. */
     case Saraiki = 'skr';
+    /** Filipino/Tagalog. */
+    case Tagalog = 'tl';
+    /** Cebuano: ISO 639-3 code, it has no ISO 639-1 code. */
+    case Cebuano = 'ceb';
+    /** Ilocano: ISO 639-3 code, it has no ISO 639-1 code. */
+    case Ilocano = 'ilo';
+    /** Hiligaynon (Ilonggo): ISO 639-3 code, it has no ISO 639-1 code. */
+    case Hiligaynon = 'hil';
+    /** Bikol: ISO 639-3 macrolanguage code, it has no ISO 639-1 code. */
+    case Bikol = 'bcl';
+    /** Waray: ISO 639-3 code, it has no ISO 639-1 code. */
+    case Waray = 'war';
     /**
      * Kurdish is split by variety, as the Kurdish collector documents it: Kurmanji (Latin script), Sorani (Arabic
      * script) and Zazaki. The ISO 639-1 code `ku` would merge them, so the ISO 639-3 / BCP 47 codes are used.

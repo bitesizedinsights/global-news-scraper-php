@@ -54,6 +54,7 @@ final class SourceLanguages
         'nl' => SourceGroup::Dutch,
         'pk-en' => SourceGroup::English,
         'py' => SourceGroup::Spanish,
+        'tw' => SourceGroup::Chinese,
     ];
 
     /** @var array<string, SourceGroup> */
@@ -128,6 +129,34 @@ final class SourceLanguages
         'app_sindhi' => SourceGroup::Sindhi,
         'awami_awaz' => SourceGroup::Sindhi,
         'app_saraiki' => SourceGroup::Saraiki,
+        // ph: English-language outlets (no collector default)
+        'inquirer' => SourceGroup::English,
+        'philstar' => SourceGroup::English,
+        'manila_times' => SourceGroup::English,
+        'daily_tribune' => SourceGroup::English,
+        'gma_news' => SourceGroup::English,
+        'rappler' => SourceGroup::English,
+        'interaksyon' => SourceGroup::English,
+        'businessworld' => SourceGroup::English,
+        'mindanews' => SourceGroup::English,
+        'mindanao_times' => SourceGroup::English,
+        'panay_news' => SourceGroup::English,
+        'techpinas' => SourceGroup::English,
+        'unbox_ph' => SourceGroup::English,
+        'tiebreaker_times' => SourceGroup::English,
+        // ph: Philippine-language outlets
+        'pilipino_star_ngayon' => SourceGroup::Tagalog,
+        'pang_masa' => SourceGroup::Tagalog,
+        'abante_tonite' => SourceGroup::Tagalog,
+        'gma_ulat_filipino' => SourceGroup::Tagalog,
+        'banat' => SourceGroup::Cebuano,
+        'boses_ti_amianan' => SourceGroup::Ilocano,
+        'ilocos_times_iluko' => SourceGroup::Ilocano,
+        'bombo_radyo_iloilo' => SourceGroup::Hiligaynon,
+        'bombo_radyo_bacolod' => SourceGroup::Hiligaynon,
+        'bombo_radyo_legazpi' => SourceGroup::Bikol,
+        'bombo_radyo_naga' => SourceGroup::Bikol,
+        'bombo_radyo_tacloban' => SourceGroup::Waray,
         // kurdish: one entry per outlet; mixed feeds get the first-listed (main) variety (no collector default)
         'botan_times' => SourceGroup::Kurmanji,
         'zazaki_news' => SourceGroup::Zazaki,
