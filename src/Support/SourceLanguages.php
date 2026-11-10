@@ -42,12 +42,15 @@ final class SourceLanguages
         'it' => SourceGroup::Italian,
         'de' => SourceGroup::German,
         'au' => SourceGroup::English,
+        'br' => SourceGroup::Portuguese,
         'ca' => SourceGroup::English,
+        'gt' => SourceGroup::Spanish,
         'id-en' => SourceGroup::English,
         'il-en' => SourceGroup::English,
         'in-en' => SourceGroup::English,
         'kr-en' => SourceGroup::English,
         'pk-en' => SourceGroup::English,
+        'py' => SourceGroup::Spanish,
     ];
 
     /** @var array<string, SourceGroup> */

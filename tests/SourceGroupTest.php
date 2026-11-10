@@ -63,6 +63,9 @@ test('languages are assigned as documented', function () {
         ->and(Source::Sabah->language())->toBe(SourceGroup::Turkish)
         ->and(Source::IlGiornale->language())->toBe(SourceGroup::Italian)
         ->and(Source::Bild->language())->toBe(SourceGroup::German)
+        ->and(Source::Veja->language())->toBe(SourceGroup::Portuguese)
+        ->and(Source::LaHora->language())->toBe(SourceGroup::Spanish)
+        ->and(Source::UltimaHora->language())->toBe(SourceGroup::Spanish)
         ->and(Source::CbcNews->language())->toBe(SourceGroup::English)
         ->and(Source::Dawn->language())->toBe(SourceGroup::English);
 });
@@ -75,7 +78,7 @@ test('a group plans the collectors that offer its sources', function () {
 
     expect($collectors(SourceGroup::French))->toBe(['fr'])
         ->and($collectors(SourceGroup::Swedish))->toBe(['scandinavian'])
-        ->and($collectors(SourceGroup::Portuguese))->toBe(['latam'])
+        ->and($collectors(SourceGroup::Portuguese))->toBe(['br', 'latam'])
         ->and($collectors(SourceGroup::Thai))->toBe(['th'])
         ->and($collectors(SourceGroup::Korean))->toBe(['kr-ko'])
         ->and($collectors(SourceGroup::Japanese))->toBe(['jp'])
@@ -83,7 +86,8 @@ test('a group plans the collectors that offer its sources', function () {
         ->and($collectors(SourceGroup::Polish))->toBe(['pl'])
         ->and($collectors(SourceGroup::Turkish))->toBe(['tr'])
         ->and($collectors(SourceGroup::Italian))->toBe(['it'])
-        ->and($collectors(SourceGroup::German))->toBe(['de']);
+        ->and($collectors(SourceGroup::German))->toBe(['de'])
+        ->and($collectors(SourceGroup::Spanish))->toBe(['mx', 'latam', 'es', 'gt', 'py']);
 });
 
 // `id-en` offers only outlets that `sea` covers as well, so the planner never needs a run for it.

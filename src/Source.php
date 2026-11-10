@@ -457,6 +457,45 @@ enum Source: string
     case NtIndependent = 'nt_independent';
     case AliceSpringsNews = 'alice_springs_news';
     case KatherineTimes = 'katherine_times';
+    case FolhaDeSpaulo = 'folha_de_spaulo';
+    case R7 = 'r7';
+    case ValorEconomico = 'valor_economico';
+    case CorreioBraziliense = 'correio_braziliense';
+    case CartaCapital = 'carta_capital';
+    case Metropoles = 'metropoles';
+    case Poder360 = 'poder360';
+    case CnnBrasil = 'cnn_brasil';
+    case BbcBrasil = 'bbc_brasil';
+    case NexoJornal = 'nexo_jornal';
+    case BrasilDeFato = 'brasil_de_fato';
+    case AgenciaBrasil = 'agencia_brasil';
+    case Veja = 'veja';
+    case CongressoEmFoco = 'congresso_em_foco';
+    case TheInterceptBrasil = 'the_intercept_brasil';
+    case Infomoney = 'infomoney';
+    case Exame = 'exame';
+    case EpocaNegocios = 'epoca_negocios';
+    case Jota = 'jota';
+    case Conjur = 'conjur';
+    case OAntagonista = 'o_antagonista';
+    case AgenciaPublica = 'agencia_publica';
+    case DwBrasil = 'dw_brasil';
+    case RfiBrasil = 'rfi_brasil';
+    case OlharDigital = 'olhar_digital';
+    case CanalTech = 'canal_tech';
+    case RevistaPiaui = 'revista_piaui';
+    case Extra = 'extra';
+    case EstadoDeMinas = 'estado_de_minas';
+    case Sul21 = 'sul21';
+    case TribunaDoParana = 'tribuna_do_parana';
+    case NdMais = 'nd_mais';
+    case Dol = 'dol';
+    case JornalOpcao = 'jornal_opcao';
+    case OImparcial = 'o_imparcial';
+    case TribunaDoNorte = 'tribuna_do_norte';
+    case JornalDeBrasilia = 'jornal_de_brasilia';
+    case FolhaVitoria = 'folha_vitoria';
+    case AmazonasAtual = 'amazonas_atual';
     case CbcNews = 'cbc_news';
     case GlobeAndMail = 'globe_and_mail';
     case NationalPost = 'national_post';
@@ -478,6 +517,11 @@ enum Source: string
     case ChronicleHerald = 'chronicle_herald';
     case GuardianPei = 'guardian_pei';
     case TheTelegram = 'the_telegram';
+    case RepublicaGt = 'republica_gt';
+    case PrensaComunitaria = 'prensa_comunitaria';
+    case LaHora = 'la_hora';
+    case GuatemalaCom = 'guatemala_com';
+    case EmisorasUnidas = 'emisoras_unidas';
     case TimesOfIsrael = 'times_of_israel';
     case Jpost = 'jpost';
     case HaaretzEn = 'haaretz_en';
@@ -518,6 +562,9 @@ enum Source: string
     case AryNews = 'ary_news';
     case SuchTv = 'such_tv';
     case Propakistani = 'propakistani';
+    case UltimaHora = 'ultima_hora';
+    case LaNacionPy = 'la_nacion_py';
+    case CincoDias = 'cinco_dias';
 
     /**
      * Display name of the outlet.
