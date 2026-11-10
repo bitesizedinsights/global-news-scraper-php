@@ -29,18 +29,18 @@ enum Collector: string
     public function actorId(): string
     {
         return 'bite-sized-insights/'.match ($this) {
-            self::Es => 'spain-news-aggregator',
-            self::Fr => 'france-news-aggregator',
-            self::Id => 'indonesian-news-article-collector',
-            self::JpEn => 'japan-news-collector',
-            self::Latam => 'latam-news-collector',
-            self::Mx => 'mexico-news-aggregator',
-            self::Sea => 'asean-news-article-collector',
-            self::Uk => 'uk-news-aggregator',
-            self::Us => 'us-news-collector',
-            self::Arab => 'arabic-news-aggregator',
-            self::TwEn => 'taiwan-english-news-collector',
-            self::Ng => 'nigerian-news-articles-collector',
+            self::Es => 'spain-news-scraper',
+            self::Fr => 'france-news-scraper',
+            self::Id => 'indonesian-news-article-scraper',
+            self::JpEn => 'japan-news-scraper',
+            self::Latam => 'latam-news-scraper',
+            self::Mx => 'mexico-news-scraper',
+            self::Sea => 'asean-news-article-scraper',
+            self::Uk => 'uk-news-scraper',
+            self::Us => 'us-news-scraper',
+            self::Arab => 'arabic-news-scraper',
+            self::TwEn => 'taiwan-english-news-scraper',
+            self::Ng => 'nigerian-news-articles-scraper',
             self::Scandinavian => 'scandinavian-news-scraper',
         };
     }

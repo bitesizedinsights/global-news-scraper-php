@@ -17,7 +17,7 @@ test('there are 13 collectors with unique keys and actor IDs', function () {
 });
 
 test('collector maps to its Apify actor', function () {
-    expect(Collector::Us->actorId())->toBe('bite-sized-insights/us-news-collector')
+    expect(Collector::Us->actorId())->toBe('bite-sized-insights/us-news-scraper')
         ->and(Collector::JpEn->value)->toBe('jp-en')
         ->and(Collector::JpEn->actorName())->toBe('news-collector-jp-en')
         ->and(Collector::tryFrom('xx'))->toBeNull();

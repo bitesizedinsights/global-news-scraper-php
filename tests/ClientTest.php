@@ -12,9 +12,9 @@ use GlobalNewsScraper\SourceMap;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Collection;
 
-const US = 'bite-sized-insights~us-news-collector';
-const UK = 'bite-sized-insights~uk-news-aggregator';
-const TW = 'bite-sized-insights~taiwan-english-news-collector';
+const US = 'bite-sized-insights~us-news-scraper';
+const UK = 'bite-sized-insights~uk-news-scraper';
+const TW = 'bite-sized-insights~taiwan-english-news-scraper';
 
 test('scrape runs the collector, maps the dataset and sets the collection', function () {
     $history = [];
@@ -98,13 +98,13 @@ test('merged results are deduplicated by URL', function () {
 
 test('a shared source is run once on the most specific collector', function () {
     $history = [];
-    $client = makeClient(['bite-sized-insights~mexico-news-aggregator' => []], $history);
+    $client = makeClient(['bite-sized-insights~mexico-news-scraper' => []], $history);
 
     $client->scrape([Source::LaJornada]);
 
     expect($history)->toHaveCount(2)
         ->and($history[0]['request']->getUri()->getPath())
-        ->toBe('/v2/acts/bite-sized-insights~mexico-news-aggregator/runs');
+        ->toBe('/v2/acts/bite-sized-insights~mexico-news-scraper/runs');
 });
 
 test('duplicate sources are sent once', function () {
