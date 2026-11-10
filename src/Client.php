@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace GlobalNewsScraper;
 
+use DateTimeImmutable;
+use DateTimeInterface;
+use DateTimeZone;
 use GlobalNewsScraper\DTO\Article;
 use GlobalNewsScraper\DTO\CollectorError;
 use GlobalNewsScraper\DTO\RunPlan;
@@ -69,18 +72,50 @@ final class Client
      * @param  array<mixed>|Collection<array-key, mixed>  $sources  At least one `Source` case.
      * @param  string|null  $searchQuery  Keep only articles whose title, text or URL contain this keyword
      *                                    (1 to 100 characters). Filtering may process more articles than it returns.
+     * @param  DateTimeInterface|string|null  $startDate  Only articles published on or after this day
+     *                                                    (`YYYY-MM-DD` or a date object, not in the future).
+     * @param  DateTimeInterface|string|null  $endDate  Only articles published on or before this day
+     *                                                  (`YYYY-MM-DD` or a date object, not older than 5 years).
      *
      * @throws InvalidInputException
      * @throws MissingApiKeyException
      */
-    public function scrape(array|Collection $sources, ?string $searchQuery = null): ScrapeResult
-    {
+    public function scrape(
+        array|Collection $sources,
+        ?string $searchQuery = null,
+        DateTimeInterface|string|null $startDate = null,
+        DateTimeInterface|string|null $endDate = null,
+    ): ScrapeResult {
         $plans = $this->plan($sources);
 
         $options = [];
 
         if ($searchQuery !== null) {
             $options['search_query'] = $this->searchQuery($searchQuery);
+        }
+
+        $start = $startDate === null ? null : $this->date($startDate, 'startDate');
+        $end = $endDate === null ? null : $this->date($endDate, 'endDate');
+        $today = gmdate('Y-m-d');
+
+        if ($start !== null) {
+            if ($start > $today) {
+                throw new InvalidInputException('startDate must not be in the future');
+            }
+
+            $options['start_date'] = $start;
+        }
+
+        if ($end !== null) {
+            if ($end < (new DateTimeImmutable('-5 years', new DateTimeZone('UTC')))->format('Y-m-d')) {
+                throw new InvalidInputException('endDate must not be older than 5 years');
+            }
+
+            $options['end_date'] = $end;
+        }
+
+        if ($start !== null && $end !== null && $end < $start) {
+            throw new InvalidInputException('endDate must not be before startDate');
         }
 
         $this->resolveApiKey();
@@ -97,6 +132,21 @@ final class Client
         }
 
         return $query;
+    }
+
+    private function date(DateTimeInterface|string $date, string $name): string
+    {
+        if ($date instanceof DateTimeInterface) {
+            return $date->format('Y-m-d');
+        }
+
+        $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+
+        if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
+            throw new InvalidInputException("{$name} must be a date in YYYY-MM-DD format");
+        }
+
+        return $date;
     }
 
     /**

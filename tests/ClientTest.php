@@ -345,3 +345,54 @@ test('a searchQuery of 100 characters is accepted', function () {
 
     expect(mb_strlen(sentBody($history[0]['request'])['search_query']))->toBe(100);
 });
+
+test('startDate and endDate are sent as YYYY-MM-DD', function () {
+    $history = [];
+    $client = makeClient([US => []], $history);
+
+    $client->scrape([Source::Reuters], startDate: '2026-01-05', endDate: new DateTimeImmutable('2026-02-10 13:45'));
+
+    $body = sentBody($history[0]['request']);
+    expect($body['start_date'])->toBe('2026-01-05')->and($body['end_date'])->toBe('2026-02-10');
+});
+
+test('dates are omitted when not set', function () {
+    $history = [];
+    makeClient([US => []], $history)->scrape([Source::Reuters]);
+
+    expect(sentBody($history[0]['request']))->not->toHaveKey('start_date')->not->toHaveKey('end_date');
+});
+
+test('invalid dates throw before any request', function (array $dates, string $message) {
+    $history = [];
+    $client = makeClient([], $history);
+
+    expect(fn () => $client->scrape([Source::Reuters], ...$dates))
+        ->toThrow(InvalidInputException::class, $message)
+        ->and($history)->toBe([]);
+})->with([
+    'wrong format' => [['startDate' => '05.01.2026'], 'startDate must be a date in YYYY-MM-DD format'],
+    'impossible day' => [['endDate' => '2026-02-30'], 'endDate must be a date in YYYY-MM-DD format'],
+    'with time' => [['startDate' => '2026-01-05 10:00:00'], 'startDate must be a date in YYYY-MM-DD format'],
+    'end before start' => [['startDate' => '2026-03-01', 'endDate' => '2026-02-01'], 'endDate must not be before'],
+]);
+
+test('startDate in the future and endDate older than 5 years are rejected', function () {
+    $client = makeClient([]);
+    $future = (new DateTimeImmutable('+2 days'))->format('Y-m-d');
+    $old = (new DateTimeImmutable('-6 years'))->format('Y-m-d');
+
+    expect(fn () => $client->scrape([Source::Reuters], startDate: $future))
+        ->toThrow(InvalidInputException::class, 'startDate must not be in the future')
+        ->and(fn () => $client->scrape([Source::Reuters], endDate: $old))
+        ->toThrow(InvalidInputException::class, 'endDate must not be older than 5 years');
+});
+
+test('today is a valid startDate and endDate', function () {
+    $history = [];
+    $today = gmdate('Y-m-d');
+
+    makeClient([US => []], $history)->scrape([Source::Reuters], startDate: $today, endDate: $today);
+
+    expect(sentBody($history[0]['request'])['start_date'])->toBe($today);
+});

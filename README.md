@@ -68,9 +68,21 @@ $result = $client->scrape(
 
 Keyword filtering can make a collector process more articles than it returns.
 
+## How to Filter News by Date Range in PHP
+
+`startDate` and `endDate` keep articles published on or after / on or before a day. Pass `YYYY-MM-DD` strings or `DateTimeInterface` objects. `startDate` must not be in the future, `endDate` not older than 5 years and not before `startDate`; invalid dates throw `InvalidInputException` before any request is sent.
+
+```php
+$result = $client->scrape(
+    sources: [Source::Reuters, Source::BbcNews],
+    startDate: new DateTimeImmutable('-7 days'),
+    endDate: date('Y-m-d'),
+);
+```
+
 ## PHP Examples
 
-See [`examples/`](examples) for runnable scripts: `01-basic.php`, `02-search-query.php`.
+See [`examples/`](examples) for runnable scripts: `01-basic.php`, `02-search-query.php`, `03-date-range.php`.
 
 ## Requirements
 
