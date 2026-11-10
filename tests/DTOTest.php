@@ -6,7 +6,9 @@ use GlobalNewsScraper\ArticleType;
 use GlobalNewsScraper\Collector;
 use GlobalNewsScraper\DTO\Article;
 use GlobalNewsScraper\DTO\CollectorError;
+use GlobalNewsScraper\DTO\RunPlan;
 use GlobalNewsScraper\DTO\ScrapeResult;
+use GlobalNewsScraper\Source;
 use Illuminate\Support\Collection;
 
 test('article maps a full dataset item and carries the collection', function () {
@@ -83,4 +85,48 @@ test('scrape result reports errors', function () {
         ->and($failed->hasErrors())->toBeTrue()
         ->and($failed->isComplete())->toBeFalse()
         ->and($failed->errors->first()->collector)->toBe(Collector::Uk);
+});
+
+test('article round trips through toArray and json', function (string $fixture) {
+    $article = Article::fromArray(loadFixture($fixture), 'us');
+
+    $viaArray = Article::fromArray($article->toArray());
+    $viaJson = Article::fromArray(json_decode(json_encode($article, JSON_THROW_ON_ERROR), true));
+
+    expect($viaArray)->toEqual($article)
+        ->and($viaJson)->toEqual($article);
+})->with(['article_full', 'article_minimal', 'article_enriched', 'article_video']);
+
+test('article toArray uses the Actor field names and carries the collection', function () {
+    $array = Article::fromArray(loadFixture('article_full'), 'jp-en')->toArray();
+
+    expect($array)->toHaveKeys(['article_title', 'date_publish', 'source_domain', 'five_w1h', 'collection'])
+        ->and($array['collection'])->toBe('jp-en')
+        ->and($array['type'])->toBe('article');
+});
+
+test('article fromArray prefers the explicit collection argument', function () {
+    $data = Article::fromArray(loadFixture('article_full'), 'us')->toArray();
+
+    expect(Article::fromArray($data, 'uk')->collection)->toBe('uk');
+});
+
+test('collector error and run plan round trip', function () {
+    $error = new CollectorError(Collector::Us, 'Rate limited');
+    $plan = new RunPlan(Collector::Uk, [Source::Reuters, Source::BbcNews]);
+
+    expect(CollectorError::fromArray(json_decode(json_encode($error), true)))->toEqual($error)
+        ->and(RunPlan::fromArray(json_decode(json_encode($plan), true)))->toEqual($plan)
+        ->and($plan->toArray())->toBe(['collector' => 'uk', 'sources' => ['reuters', 'bbc_news']]);
+});
+
+test('scrape result round trips', function () {
+    $result = new ScrapeResult(
+        new Collection([Article::fromArray(loadFixture('article_enriched'), 'us')]),
+        new Collection([new CollectorError(Collector::Fr, 'Failed')]),
+    );
+
+    $restored = ScrapeResult::fromArray(json_decode(json_encode($result, JSON_THROW_ON_ERROR), true));
+
+    expect($restored)->toEqual($result);
 });

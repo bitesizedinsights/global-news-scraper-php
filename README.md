@@ -217,6 +217,15 @@ foreach ($result->errors as $error) {
 }
 ```
 
+## Store and Restore News Articles in PHP
+
+`Article`, `ScrapeResult`, `CollectorError` and `RunPlan` implement `JsonSerializable` and have `toArray()` and `fromArray()`. An article uses the Actor's field names (`article_title`, `date_publish`, `source_domain`, ...) plus `collection`, so `fromArray()` restores an equal object:
+
+```php
+$json = json_encode($result);                            // database column, cache, queue payload
+$restored = ScrapeResult::fromArray(json_decode($json, true));
+```
+
 ## Configure Concurrency and Timeouts for the PHP News Scraper
 
 ```php

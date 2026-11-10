@@ -7,8 +7,9 @@ namespace GlobalNewsScraper\DTO;
 use GlobalNewsScraper\ArticleType;
 use GlobalNewsScraper\Support\Value;
 use InvalidArgumentException;
+use JsonSerializable;
 
-final readonly class Article
+final readonly class Article implements JsonSerializable
 {
     /**
      * @param  string  $collection  Key of the collector that returned the article, e.g. `us` or `jp-en`.
@@ -41,9 +42,13 @@ final readonly class Article
         public ?string $error = null,
     ) {}
 
-    /** @param  array<mixed>  $data  One dataset item of a collector Actor. */
-    public static function fromArray(array $data, string $collection): self
+    /**
+     * @param  array<mixed>  $data  One dataset item of a collector Actor, or the output of `toArray()`.
+     * @param  string|null  $collection  Collector key; defaults to the `collection` entry of `$data`.
+     */
+    public static function fromArray(array $data, ?string $collection = null): self
     {
+        $collection ??= Value::string($data, 'collection');
         $type = Value::nullableString($data, 'type');
 
         return new self(
@@ -66,6 +71,41 @@ final readonly class Article
             fixedText: Value::nullableArray($data, 'fixed_text'),
             error: Value::nullableString($data, 'error'),
         );
+    }
+
+    /**
+     * The article in the Actor's dataset field names, plus `collection`; `fromArray()` restores it.
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'url' => $this->url,
+            'collection' => $this->collection,
+            'article_title' => $this->title,
+            'authors' => $this->authors,
+            'date_publish' => $this->datePublish,
+            'article_description' => $this->description,
+            'text' => $this->text,
+            'language' => $this->language,
+            'image_url' => $this->imageUrl,
+            'source_domain' => $this->sourceDomain,
+            'type' => $this->type->value,
+            'sentiment' => $this->sentiment,
+            'tags' => $this->tags,
+            'summary' => $this->summary,
+            'five_w1h' => $this->fiveW1h,
+            'detected_language' => $this->detectedLanguage,
+            'fixed_text' => $this->fixedText,
+            'error' => $this->error,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
     }
 
     /**
