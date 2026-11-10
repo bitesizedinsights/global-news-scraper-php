@@ -49,6 +49,7 @@ final class SourceLanguages
         'il-en' => SourceGroup::English,
         'in-en' => SourceGroup::English,
         'kr-en' => SourceGroup::English,
+        'nl' => SourceGroup::Dutch,
         'pk-en' => SourceGroup::English,
         'py' => SourceGroup::Spanish,
     ];
@@ -101,6 +102,17 @@ final class SourceLanguages
         'pattaya_news' => SourceGroup::English,
         'bangkok_scoop' => SourceGroup::English,
         'thailand_business_news' => SourceGroup::English,
+        // ch: German-, French- and Italian-language outlets (no collector default)
+        'watson_de' => SourceGroup::German,
+        'nau' => SourceGroup::German,
+        'suedostschweiz' => SourceGroup::German,
+        'inside_paradeplatz' => SourceGroup::German,
+        'watson_fr' => SourceGroup::French,
+        'le_courrier' => SourceGroup::French,
+        'ghi' => SourceGroup::French,
+        'corriere_del_ticino' => SourceGroup::Italian,
+        'ticinonews' => SourceGroup::Italian,
+        'la_regione' => SourceGroup::Italian,
     ];
 
     /**

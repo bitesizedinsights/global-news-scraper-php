@@ -67,7 +67,11 @@ test('languages are assigned as documented', function () {
         ->and(Source::LaHora->language())->toBe(SourceGroup::Spanish)
         ->and(Source::UltimaHora->language())->toBe(SourceGroup::Spanish)
         ->and(Source::CbcNews->language())->toBe(SourceGroup::English)
-        ->and(Source::Dawn->language())->toBe(SourceGroup::English);
+        ->and(Source::Dawn->language())->toBe(SourceGroup::English)
+        ->and(Source::Joop->language())->toBe(SourceGroup::Dutch)
+        ->and(Source::WatsonDe->language())->toBe(SourceGroup::German)
+        ->and(Source::WatsonFr->language())->toBe(SourceGroup::French)
+        ->and(Source::CorriereDelTicino->language())->toBe(SourceGroup::Italian);
 });
 
 test('a group plans the collectors that offer its sources', function () {
@@ -76,7 +80,7 @@ test('a group plans the collectors that offer its sources', function () {
         (new Client)->plan($group),
     );
 
-    expect($collectors(SourceGroup::French))->toBe(['fr'])
+    expect($collectors(SourceGroup::French))->toBe(['fr', 'ch'])
         ->and($collectors(SourceGroup::Swedish))->toBe(['scandinavian'])
         ->and($collectors(SourceGroup::Portuguese))->toBe(['br', 'latam'])
         ->and($collectors(SourceGroup::Thai))->toBe(['th'])
@@ -85,8 +89,9 @@ test('a group plans the collectors that offer its sources', function () {
         ->and($collectors(SourceGroup::Vietnamese))->toBe(['vn'])
         ->and($collectors(SourceGroup::Polish))->toBe(['pl'])
         ->and($collectors(SourceGroup::Turkish))->toBe(['tr'])
-        ->and($collectors(SourceGroup::Italian))->toBe(['it'])
-        ->and($collectors(SourceGroup::German))->toBe(['de'])
+        ->and($collectors(SourceGroup::Italian))->toBe(['it', 'ch'])
+        ->and($collectors(SourceGroup::German))->toBe(['de', 'ch'])
+        ->and($collectors(SourceGroup::Dutch))->toBe(['nl'])
         ->and($collectors(SourceGroup::Spanish))->toBe(['mx', 'latam', 'es', 'gt', 'py']);
 });
 

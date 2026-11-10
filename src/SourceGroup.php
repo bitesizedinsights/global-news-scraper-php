@@ -32,6 +32,7 @@ enum SourceGroup: string
     case Turkish = 'tr';
     case Italian = 'it';
     case German = 'de';
+    case Dutch = 'nl';
 
     /**
      * Display name, e.g. `Spanish`.
