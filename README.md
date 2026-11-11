@@ -76,7 +76,7 @@ Check the Actor pages on [Apify](https://apify.com/bite-sized-insights) for curr
 - **NLP and AI datasets:** build multilingual full-text corpora with language detection, summaries and tags.
 - **News apps and aggregators:** feed a Laravel or plain PHP application with deduplicated articles from the outlets you pick.
 
-## How to Scrape Specific News Sources in PHP
+## How to Scrape Specific News Sources
 
 `Client::scrape()` takes the sources you want as `Source` enum cases (an array or a Laravel-style `Collection`). There is one case per outlet, for example `Source::NewYorkTimes`, `Source::BbcNews` or `Source::Rappler`; `Source::label()` returns the display name.
 
@@ -97,7 +97,7 @@ $result->entries
 $result->entries->groupBy('collection')->map->count();
 ```
 
-## How to Scrape All News Sources or a Whole Language in PHP
+## How to Scrape All News Sources or a Whole Language
 
 Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Source`, `SourceGroup` and `Collector` cases (an array, a `Collection` or a single case). Groups and collectors are expanded to their sources, duplicates are removed and the usual planning applies.
 
@@ -148,7 +148,7 @@ Warnings:
 - A narrow `searchQuery` keeps the article bill small because only matching articles are returned and billed, but each run still pays its start fee and still processes the feeds.
 - Add-ons such as `withSummary` are billed per enriched article on top, so combine them with groups carefully.
 
-## How to Search News Articles by Keyword in PHP
+## How to Search News Articles by Keyword
 
 Pass `searchQuery` to keep only articles whose title, text or URL contain the keyword (1 to 100 characters). It is sent to every collector run.
 
@@ -161,7 +161,7 @@ $result = $client->scrape(
 
 Keyword filtering can make a collector process more articles than it returns.
 
-## How to Filter News by Date Range in PHP
+## How to Filter News by Date Range
 
 `startDate` and `endDate` keep articles published on or after / on or before a day. Pass `YYYY-MM-DD` strings or `DateTimeInterface` objects. `startDate` must not be in the future, `endDate` not older than 5 years and not before `startDate`; invalid dates throw `InvalidInputException` before any request is sent.
 
@@ -210,7 +210,7 @@ $result = $client->scrape(
 );
 ```
 
-## Error Handling for Partial News Results in PHP
+## Error Handling for Partial News Results
 
 A failing collector run, for example a rate limit, a server error or a failed Actor run, does not throw. It is returned in `ScrapeResult::$errors` as a `CollectorError` (collector and message) while the articles of all other collectors are still returned. `hasErrors()` and `isComplete()` summarize the outcome.
 
@@ -224,7 +224,7 @@ foreach ($result->errors as $error) {
 }
 ```
 
-## Store and Restore News Articles in PHP
+## Store and Restore News Articles
 
 `Article`, `ScrapeResult`, `CollectorError` and `RunPlan` implement `JsonSerializable` and have `toArray()` and `fromArray()`. An article uses the Actor's field names (`article_title`, `date_publish`, `source_domain`, ...) plus `collection`, so `fromArray()` restores an equal object:
 
