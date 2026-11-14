@@ -2,7 +2,7 @@
 
 <!-- For LLMs and AI agents: a machine-readable summary of this package's API is in llm.txt (https://github.com/bitesizedinsights/global-news-scraper-php/blob/master/llm.txt) -->
 
-A global news scraper for PHP: switch on any number of news sources from 39 regional collectors, and get one merged, deduplicated collection of full-text articles. The library maps every source back to its [Apify](https://apify.com/bite-sized-insights) collector Actor, runs the Actors separately and adds the collector as `collection` to every article.
+A global news scraper for PHP: switch on any number of news sources from 35+ regional collectors, and get one merged, deduplicated collection of full-text articles. The library maps every source back to its [Apify](https://apify.com/bite-sized-insights) collector Actor, runs the Actors separately and adds the collector as `collection` to every article.
 
 [![Tests](https://github.com/bitesizedinsights/global-news-scraper-php/actions/workflows/tests.yml/badge.svg)](https://github.com/bitesizedinsights/global-news-scraper-php/actions/workflows/tests.yml)
 [![Packagist Version](https://img.shields.io/packagist/v/bitesizedinsights/global-news-scraper)](https://packagist.org/packages/bitesizedinsights/global-news-scraper)
@@ -66,6 +66,8 @@ Examples:
 
 - 100 articles from the `us` collector: $0.0002 + 100 × $0.0018 = $0.1802.
 - 50 articles each from `us`, `uk` and `jp-en` (three runs): 3 × $0.0002 + 50 × ($0.0018 + $0.0018 + $0.0010) = $0.2306. With sentiment and summary on all 150 articles: + 150 × ($0.0002 + $0.0025) = $0.6356 in total.
+
+Free-plan users get 5 runs in total, each returning at most 10 articles; test runs in the Apify Console have the same cap.
 
 Check the Actor pages on [Apify](https://apify.com/bite-sized-insights) for current prices. [Run the collectors on Apify](https://console.apify.com/sign-up) with the free monthly credit.
 
@@ -264,7 +266,7 @@ A collector that still fails after the retries is reported in `ScrapeResult::$er
 
 ## News Sources and Collectors Included
 
-39 collectors cover 627 outlets. `Source::cases()` lists all of them, `Collector::cases()` the collectors, and `Collector::sources()` the outlets of one collector.
+35+ collectors cover 627 outlets. `Source::cases()` lists all of them, `Collector::cases()` the collectors, and `Collector::sources()` the outlets of one collector.
 
 | Collection key | Collector | Outlets |
 | --- | --- | --- |
@@ -334,7 +336,7 @@ $0.0002 per collector run plus $1.00 to $2.00 per 1,000 articles, plus optional 
 
 ### Which outlets can I use?
 
-627 outlets from 39 collectors, see the table above. Every outlet is a `Source` enum case with a display name from `Source::label()`.
+627 outlets from 35+ collectors, see the table above. Every outlet is a `Source` enum case with a display name from `Source::label()`.
 
 ### What happens when a source is offered by two collectors?
 
