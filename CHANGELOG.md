@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Changed
 
+- Guzzle 8 supported, Guzzle 7 still allowed (`guzzlehttp/guzzle` `^7.0 || ^8.0`).
 - `limit` above 10000 now throws `InvalidInputException` before any request, mirroring the maximum of the Actor input schemas, instead of failing every collector run. `searchQuery` (1-100 characters), dates and `limit >= 0` were already validated.
 
 ### Added

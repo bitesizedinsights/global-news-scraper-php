@@ -615,6 +615,31 @@ test('the run start is never retried after 5xx or a timeout', function (Response
     ),
 ]);
 
+test('on Guzzle 8 the run start is retried after a connect timeout but not after a network timeout', function () {
+    $connect = '\\GuzzleHttp\\Exception\\ConnectTimeoutException';
+    $network = '\\GuzzleHttp\\Exception\\NetworkTimeoutException';
+    $request = new Request('POST', '/');
+
+    $sleeps = [];
+    $result = retryClient(
+        [new $connect('connect timed out', $request), runBody(), new Response(200, [], '[]')],
+        $sleeps,
+    )->scrape([Source::Reuters]);
+
+    expect($result->isComplete())->toBeTrue()->and($sleeps)->toHaveCount(1);
+
+    $sleeps = [];
+    $result = retryClient(
+        [new $network('read timed out', $request), runBody(), new Response(200, [], '[]')],
+        $sleeps,
+    )->scrape([Source::Reuters]);
+
+    expect($result->errors)->toHaveCount(1)->and($sleeps)->toBeEmpty();
+})->skip(
+    ! class_exists('\\GuzzleHttp\\Exception\\ConnectTimeoutException'),
+    'Guzzle 8 exception hierarchy only',
+);
+
 test('4xx other than 429 is not retried', function () {
     $sleeps = [];
     $result = retryClient([new Response(400, [], '{}')], $sleeps)->scrape([Source::Reuters]);

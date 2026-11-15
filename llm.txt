@@ -5,7 +5,7 @@
 Key facts:
 - Package: `bitesizedinsights/global-news-scraper`
 - Install: `composer require bitesizedinsights/global-news-scraper`
-- PHP: ^8.3, Guzzle ^7, illuminate/collections
+- PHP: ^8.3, Guzzle ^7 || ^8, illuminate/collections
 - Namespace: `GlobalNewsScraper`
 - Entry class: `GlobalNewsScraper\Client`
 - Auth: Apify API token, set via `Client::setApifyKey()`, falls back to env `APIFY_API_TOKEN` or `APIFY_TOKEN`

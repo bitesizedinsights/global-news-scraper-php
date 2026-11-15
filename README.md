@@ -360,7 +360,7 @@ Yes. The package needs PHP 8.3, Guzzle and `illuminate/collections`, which is a 
 
 ## Requirements
 
-PHP 8.3 or newer, Guzzle 7 and `illuminate/collections`. No Laravel needed.
+PHP 8.3 or newer, Guzzle 7 or 8 and `illuminate/collections`. No Laravel needed.
 
 ## Powered by Apify
 
