@@ -246,12 +246,16 @@ $client = (new Client(new Config(maxConcurrency: 3, timeout: 1200)))->setApifyKe
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `maxConcurrency` | 2 | Collector runs active at the same time. Every run already fetches several articles in parallel on the shared news backend, so the default of 2 keeps the load moderate. Raise it for faster multi-country runs. |
-| `timeout` | 900 | Seconds to wait for each collector run to finish. |
+| `timeout` | 900 | Seconds to wait for each collector run to finish. When it expires, the run is aborted (best effort) so it does not keep running and billing; the collector error then says `Actor run did not finish within N seconds and was aborted`. |
 | `requestTimeout` | 90 | Timeout in seconds of a single HTTP request. |
 | `maxRetries` | 3 | How often a failed request is repeated (0 turns retrying off). See below. |
 | `retryBaseDelay` | 1.0 | Seconds before the first retry; doubles with each retry. |
 | `retryMaxDelay` | 30.0 | Longest wait before a retry. |
 | `baseUrl` | `https://api.apify.com/v2` | Apify API base URL. |
+
+### Aborting Runs
+
+When `timeout` expires, every collector run that is still pending is aborted with `POST /actor-runs/{id}/abort` (own request timeout of at most 10 seconds, no retries). A failing abort never hides the timeout: the error then keeps the plain message without `and was aborted`. Runs that ended as FAILED, ABORTED or TIMED-OUT, rate limits and connection errors never trigger an abort. `ApiException::$runId` carries the run ID when known. To stop a run yourself, call `$client->abort($runId)` (throws `ApiException` or `RateLimitException`).
 
 ### Retries and Backoff
 

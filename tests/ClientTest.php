@@ -6,6 +6,7 @@ use GlobalNewsScraper\ArticleType;
 use GlobalNewsScraper\Client;
 use GlobalNewsScraper\Collector;
 use GlobalNewsScraper\Config;
+use GlobalNewsScraper\Exception\ApiException;
 use GlobalNewsScraper\Exception\InvalidInputException;
 use GlobalNewsScraper\Exception\MissingApiKeyException;
 use GlobalNewsScraper\Source;
@@ -689,3 +690,79 @@ test('the delay is capped at retryMaxDelay', function () {
 
     expect($sleeps[0])->toBeBetween(5.0, 10.0)->and($sleeps[1])->toBeBetween(6.0, 12.0);
 });
+
+function abortRequests(array $history): array
+{
+    return array_values(array_filter(
+        $history,
+        fn ($h) => str_ends_with($h['request']->getUri()->getPath(), '/abort'),
+    ));
+}
+
+test('an expired deadline aborts every pending run once and says so', function () {
+    $history = [];
+    $client = makeClient(
+        [US => ['statuses' => ['RUNNING']], UK => ['statuses' => ['RUNNING']]],
+        $history,
+        new Config(timeout: 0, maxConcurrency: 2),
+    );
+
+    $result = $client->scrape([Source::BbcNews, Source::Reuters]);
+
+    $aborts = abortRequests($history);
+    $paths = array_map(fn ($h) => $h['request']->getUri()->getPath(), $aborts);
+    sort($paths);
+
+    expect($aborts)->toHaveCount(2)
+        ->and($paths)->toBe(['/v2/actor-runs/run-'.UK.'/abort', '/v2/actor-runs/run-'.US.'/abort'])
+        ->and($aborts[0]['request']->getMethod())->toBe('POST')
+        ->and($aborts[0]['request']->getHeaderLine('Authorization'))->toBe('Bearer test-token')
+        ->and($aborts[0]['options']['timeout'])->toBe(10)
+        ->and($result->errors->first()->message)->toBe('Actor run did not finish within 0 seconds and was aborted');
+});
+
+test('a failing abort still reports the original timeout without claiming an abort', function () {
+    $history = [];
+    $client = makeClient(
+        [US => ['statuses' => ['RUNNING'], 'abort' => new Response(500, [], '{}')]],
+        $history,
+        new Config(timeout: 0),
+    );
+
+    $result = $client->scrape([Source::Reuters]);
+
+    expect(abortRequests($history))->toHaveCount(1)
+        ->and($result->errors->first()->message)->toBe('Actor run did not finish within 0 seconds');
+});
+
+test('no abort after success or a failed run', function (string $status) {
+    $history = [];
+    $client = makeClient([US => ['statuses' => [$status]]], $history, new Config(timeout: 0));
+
+    $client->scrape([Source::Reuters]);
+
+    expect(abortRequests($history))->toBeEmpty();
+})->with(['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT']);
+
+test('ApiException carries an optional run ID', function () {
+    expect((new ApiException('x'))->runId)->toBeNull()
+        ->and((new ApiException('x', 0, null, 'r1'))->runId)->toBe('r1');
+});
+
+test('abort posts to the run abort endpoint', function () {
+    $history = [];
+    $client = makeClient([US => []], $history);
+
+    $client->abort('run-'.US);
+
+    expect($history)->toHaveCount(1)
+        ->and($history[0]['request']->getMethod())->toBe('POST')
+        ->and($history[0]['request']->getUri()->getPath())->toBe('/v2/actor-runs/run-'.US.'/abort')
+        ->and($history[0]['request']->getHeaderLine('Authorization'))->toBe('Bearer test-token');
+});
+
+test('abort throws on API errors', function () {
+    $client = makeClient([US => ['abort' => new Response(404, [], '{}')]]);
+
+    $client->abort('run-'.US);
+})->throws(ApiException::class);

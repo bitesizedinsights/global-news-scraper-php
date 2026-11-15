@@ -15,6 +15,7 @@ use Psr\Http\Message\RequestInterface;
  * - `items`: dataset items (default none)
  * - `statuses`: run statuses returned by the start call and then by each poll (default `['SUCCEEDED']`)
  * - `start`, `poll`, `dataset`: a Response that replaces the default answer of that call
+ * - `abort`: a Response that replaces the default answer of the abort call
  * - `datasetId`: null omits `defaultDatasetId` from the run
  */
 final class FakeApify
@@ -32,6 +33,12 @@ final class FakeApify
 
         if ($request->getMethod() === 'POST' && preg_match('#^/v2/acts/([^/]+)/runs$#', $path, $m) === 1) {
             return Create::promiseFor($this->start($m[1]));
+        }
+
+        if ($request->getMethod() === 'POST' && preg_match('#^/v2/actor-runs/run-(.+)/abort$#', $path, $m) === 1) {
+            $abort = $this->actors[$m[1]]['abort'] ?? null;
+
+            return Create::promiseFor($abort instanceof Response ? $abort : $this->run($m[1], 'ABORTING'));
         }
 
         if (preg_match('#^/v2/actor-runs/run-(.+)$#', $path, $m) === 1) {

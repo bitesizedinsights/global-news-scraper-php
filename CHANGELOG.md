@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Added
+
+- When `Config::$timeout` expires while waiting for a run, the run is now aborted (best effort, `POST /actor-runs/{id}/abort`, own timeout of at most 10 seconds, errors swallowed) so it does not keep running and billing. The collector error then reads `... and was aborted`; if the abort fails, the original message is kept. Only our own deadline aborts, never failed runs, rate limits or connection errors.
+- `Client::abort(string $runId)` and `ApiException::$runId`.
+
 ## [0.2.0] - 2026-11-15
 
 ### Changed

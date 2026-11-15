@@ -336,16 +336,25 @@ final class Client
                         throw new ApiException('Invalid API response: missing or unknown run status');
                     }
 
-                    $remaining = $deadline - time();
-
-                    if ($remaining <= 0) {
-                        throw new ApiException("Actor run did not finish within {$this->config->timeout} seconds");
-                    }
-
                     $runId = $run['id'] ?? null;
 
                     if (! is_string($runId)) {
                         throw new ApiException('Invalid API response: missing run ID');
+                    }
+
+                    $remaining = $deadline - time();
+
+                    if ($remaining <= 0) {
+                        // Our own deadline expired: stop the run so it does not keep running and billing
+                        $aborted = yield $this->tryAbort($runId);
+                        $message = "Actor run did not finish within {$this->config->timeout} seconds";
+
+                        throw new ApiException(
+                            $aborted ? "{$message} and was aborted" : $message,
+                            0,
+                            null,
+                            $runId,
+                        );
                     }
 
                     $run = $this->runData(yield $this->request('GET', "/actor-runs/{$runId}", [
@@ -366,6 +375,41 @@ final class Client
             } catch (ApiException $e) {
                 yield Create::promiseFor(new CollectorError($plan->collector, $e->getMessage()));
             }
+        });
+    }
+
+    /**
+     * Aborts an Apify run (`POST /actor-runs/{id}/abort`), e.g. one that is still running after a timeout.
+     *
+     * @throws ApiException
+     * @throws RateLimitException
+     * @throws MissingApiKeyException
+     */
+    public function abort(string $runId): void
+    {
+        $this->request('POST', '/actor-runs/'.rawurlencode($runId).'/abort')->wait();
+    }
+
+    /**
+     * Best-effort abort with a short request timeout and no retries.
+     *
+     * @return PromiseInterface Resolves to true when Apify accepted the abort, false otherwise; never rejects.
+     */
+    private function tryAbort(string $runId): PromiseInterface
+    {
+        return Coroutine::of(function () use ($runId) {
+            try {
+                yield $this->request(
+                    'POST',
+                    '/actor-runs/'.rawurlencode($runId).'/abort',
+                    ['timeout' => min(10, $this->config->requestTimeout), 'retry' => false],
+                );
+                $aborted = true;
+            } catch (Throwable) {
+                $aborted = false;
+            }
+
+            yield Create::promiseFor($aborted);
         });
     }
 
@@ -435,10 +479,12 @@ final class Client
             'Authorization' => 'Bearer '.$this->resolveApiKey(),
             'Accept' => 'application/json',
         ];
-        $options['timeout'] = $this->config->requestTimeout;
+        $options['timeout'] ??= $this->config->requestTimeout;
+        $maxRetries = ($options['retry'] ?? true) === false ? 0 : $this->config->maxRetries;
+        unset($options['retry']);
         $url = rtrim($this->config->baseUrl, '/').$path;
 
-        return Coroutine::of(function () use ($method, $url, $options) {
+        return Coroutine::of(function () use ($method, $url, $options, $maxRetries) {
             for ($attempt = 0; ; $attempt++) {
                 try {
                     $response = yield $this->http->requestAsync($method, $url, $options);
@@ -448,7 +494,7 @@ final class Client
                     $status = $e->getResponse()->getStatusCode();
                     $retryAfter = $status === 429 ? $this->retryAfter($e->getResponse()) : null;
                     $retryable = $status === 429 || ($status >= 500 && $method !== 'POST');
-                    $delay = $retryable && $attempt < $this->config->maxRetries
+                    $delay = $retryable && $attempt < $maxRetries
                         ? $this->retryDelay($attempt, $retryAfter)
                         : null;
 
@@ -465,7 +511,7 @@ final class Client
                     // A failed connection never reached the server, so it is safe to repeat even for POST.
                     $retryable = $e instanceof ConnectException || $method !== 'POST';
 
-                    if ($retryable && $attempt < $this->config->maxRetries) {
+                    if ($retryable && $attempt < $maxRetries) {
                         ($this->sleeper)($this->retryDelay($attempt, null) ?? 0.0);
 
                         continue;
