@@ -105,7 +105,7 @@ Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Sou
 
 | Group | Sources |
 | --- | --- |
-| `SourceGroup::All` | every source of every collector (38 collector runs: `id-en` has no outlet of its own that `sea` does not already cover) |
+| `SourceGroup::All` | every source of every collector (35+ collector runs: `id-en` has no outlet of its own that `sea` does not already cover) |
 | `SourceGroup::English` | `us`, `uk`, `ng`, `sea`, `jp-en`, `tw-en`, `au`, `ca`, `il-en`, `in-en`, `kr-en`, `pk-en` and `id-en`, plus the English-language outlets of `mx`, `th`, `vn`, `ph` and `kurdish` |
 | `SourceGroup::Spanish` | Spain, Mexico, Guatemala, Paraguay and the Spanish-speaking part of Latin America (`es`, `mx`, `latam`, `gt`, `py`) |
 | `SourceGroup::French` | France and French-speaking Switzerland (`fr`, `ch`) |
@@ -144,8 +144,8 @@ $client->scrape($sources, limit: 20);
 
 Warnings:
 
-- Large groups start many collector runs, every one of them billed: $0.0002 per run plus the per-article price. `SourceGroup::All` is 38 runs, so at least $0.0076 even when nothing matches. Look at `plan()` first.
-- Always set `limit` with a group. It applies to each collector run, not to the merged result: 38 runs with `limit: 100` return up to 3,800 articles. Without a limit the Actor default of 100 per run applies.
+- Large groups start many collector runs, every one of them billed: $0.0002 per run plus the per-article price. `SourceGroup::All` is 35+ runs, so at least $0.007 even when nothing matches. Look at `plan()` first.
+- Always set `limit` with a group. It applies to each collector run, not to the merged result: 35+ runs with `limit: 100` return up to 3,500+ articles. Without a limit the Actor default of 100 per run applies.
 - The runs are processed `Config::$maxConcurrency` (default 2) at a time, so `SourceGroup::All` takes several waves of runs and can take a while.
 - A narrow `searchQuery` keeps the article bill small because only matching articles are returned and billed, but each run still pays its start fee and still processes the feeds.
 - Add-ons such as `withSummary` are billed per enriched article on top, so combine them with groups carefully.
