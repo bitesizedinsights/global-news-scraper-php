@@ -316,9 +316,12 @@ final class Client
     private function runCollector(RunPlan $plan, array $input): PromiseInterface
     {
         return Coroutine::of(function () use ($plan, $input) {
+            $knownRunId = null;
+
             try {
                 $actor = str_replace('/', '~', $plan->collector->actorId());
                 $run = $this->runData(yield $this->request('POST', "/acts/{$actor}/runs", ['json' => $input]));
+                $knownRunId = is_string($run['id'] ?? null) ? $run['id'] : null;
                 $deadline = time() + $this->config->timeout;
 
                 while (true) {
@@ -373,7 +376,7 @@ final class Client
                 // A coroutine resolves with its final yielded value, not with a return value
                 yield Create::promiseFor($this->articles($plan->collector, $items));
             } catch (ApiException $e) {
-                yield Create::promiseFor(new CollectorError($plan->collector, $e->getMessage()));
+                yield Create::promiseFor(new CollectorError($plan->collector, $e->getMessage(), $e->runId ?? $knownRunId));
             }
         });
     }

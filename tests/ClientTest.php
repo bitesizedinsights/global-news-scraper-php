@@ -766,3 +766,19 @@ test('abort throws on API errors', function () {
 
     $client->abort('run-'.US);
 })->throws(ApiException::class);
+
+test('collector errors carry the run ID of failed and timed-out runs', function () {
+    $failed = makeClient([US => ['statuses' => ['FAILED']]])->scrape([Source::Reuters]);
+    $timedOut = makeClient([US => ['statuses' => ['RUNNING']]], config: new Config(timeout: 0))
+        ->scrape([Source::Reuters]);
+
+    expect($failed->errors->first()->runId)->toBe('run-'.US)
+        ->and($timedOut->errors->first()->runId)->toBe('run-'.US);
+});
+
+test('collector errors have no run ID when no run was started', function () {
+    $result = makeClient([US => ['start' => jsonResponse(429, [])]])->scrape([Source::Reuters]);
+
+    expect($result->errors->first()->runId)->toBeNull()
+        ->and($result->errors->first()->toArray())->not->toHaveKey('runId');
+});

@@ -130,3 +130,15 @@ test('scrape result round trips', function () {
 
     expect($restored)->toEqual($result);
 });
+
+test('collector error with a run ID round trips and null run ID keeps the output unchanged', function () {
+    $with = new CollectorError(Collector::Us, 'Timed out', 'run-1');
+    $without = new CollectorError(Collector::Us, 'Rate limited');
+
+    expect($with->toArray())->toBe(['collector' => 'us', 'message' => 'Timed out', 'runId' => 'run-1'])
+        ->and(CollectorError::fromArray(json_decode(json_encode($with), true)))->toEqual($with)
+        ->and(json_encode($without))->toBe('{"collector":"us","message":"Rate limited"}')
+        ->and(CollectorError::fromArray(['collector' => 'us', 'message' => 'x', 'runId' => null])->runId)->toBeNull()
+        ->and(fn () => CollectorError::fromArray(['collector' => 'us', 'message' => 'x', 'runId' => 5]))
+        ->toThrow(InvalidArgumentException::class);
+});

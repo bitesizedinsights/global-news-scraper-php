@@ -214,7 +214,7 @@ $result = $client->scrape(
 
 ## Error Handling for Partial News Results
 
-A failing collector run, for example a rate limit, a server error or a failed Actor run, does not throw. It is returned in `ScrapeResult::$errors` as a `CollectorError` (collector and message) while the articles of all other collectors are still returned. `hasErrors()` and `isComplete()` summarize the outcome.
+A failing collector run, for example a rate limit, a server error or a failed Actor run, does not throw. It is returned in `ScrapeResult::$errors` as a `CollectorError` (collector, message and, when known, the Apify run ID in `runId`, which can be passed to `Client::abort()`) while the articles of all other collectors are still returned. `hasErrors()` and `isComplete()` summarize the outcome.
 
 Invalid input throws `InvalidInputException` (an `InvalidArgumentException`) before any request is sent, and a missing API key throws `MissingApiKeyException`.
 

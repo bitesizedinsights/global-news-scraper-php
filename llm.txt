@@ -24,7 +24,7 @@ Key facts:
 - DTOs (all `final readonly`; `Article`, `ScrapeResult`, `CollectorError`, `RunPlan` implement JsonSerializable and have toArray() in the Actor's snake_case shape plus `collection` on Article, and fromArray(toArray()) restores them):
   - `ScrapeResult`: entries: Collection<int, Article>, errors: Collection<int, CollectorError>; helpers hasErrors(), isComplete()
   - `Article` (`fromArray(array, ?string $collection = null)`, collection falls back to the array's `collection` key): url: string, collection: string (collector key, e.g. `us`), title: ?string, authors: string[], datePublish: ?string, description: ?string, text: string, language: ?string, imageUrl: ?string, sourceDomain: string, type: ArticleType, error: ?string; helpers isArticle(), hasEnrichment()
-  - `CollectorError`: collector: Collector, message: string
+  - `CollectorError`: collector: Collector, message: string, runId: ?string (Apify run ID when known, e.g. for `Client::abort()`; toArray() emits `runId` only when set)
   - `RunPlan`: collector: Collector, sources: Source[]
 - Enums:
   - `Source`: one case per news outlet (627), value is the Actor input key, e.g. NewYorkTimes ('new_york_times'); label(), collectors()
