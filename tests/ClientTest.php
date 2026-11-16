@@ -9,6 +9,7 @@ use GlobalNewsScraper\Config;
 use GlobalNewsScraper\Exception\ApiException;
 use GlobalNewsScraper\Exception\InvalidInputException;
 use GlobalNewsScraper\Exception\MissingApiKeyException;
+use GlobalNewsScraper\Exception\SpendingLimitException;
 use GlobalNewsScraper\Source;
 use GlobalNewsScraper\SourceMap;
 use GuzzleHttp\Exception\ConnectException;
@@ -824,6 +825,99 @@ test('collector errors have no run ID when no run was started', function () {
 
     expect($result->errors->first()->runId)->toBeNull()
         ->and($result->errors->first()->toArray())->not->toHaveKey('runId');
+});
+
+function limitResponse(): Response
+{
+    return jsonResponse(402, ['error' => [
+        'type' => 'not-enough-usage-to-run-paid-actor',
+        'message' => "Monthly usage hard limit exceeded.\nToken abc",
+    ]]);
+}
+
+test('HTTP 402 on run start, polling and dataset becomes a SpendingLimitException', function (array $actor) {
+    $history = [];
+
+    try {
+        makeClient([US => $actor], $history)->scrape([Source::Reuters]);
+        $this->fail('SpendingLimitException expected');
+    } catch (SpendingLimitException $e) {
+        expect($e)->toBeInstanceOf(ApiException::class)
+            ->and($e->getCode())->toBe(402)
+            ->and($e->errorType)->toBe('not-enough-usage-to-run-paid-actor')
+            ->and($e->getMessage())->toContain('Monthly usage hard limit exceeded.')
+            ->and($e->getMessage())->not->toMatch('/[\x00-\x1f]/');
+    }
+})->with([
+    'run start' => [['start' => limitResponse()]],
+    'polling' => [['statuses' => ['RUNNING', 'SUCCEEDED'], 'poll' => limitResponse()]],
+    'dataset' => [['dataset' => limitResponse()]],
+]);
+
+test('an unparseable 402 body gives a null errorType and the abort call maps 402 too', function () {
+    $sleeps = [];
+
+    try {
+        retryClient([new Response(402, [], 'not json')], $sleeps)->scrape([Source::Reuters]);
+        $this->fail('SpendingLimitException expected');
+    } catch (SpendingLimitException $e) {
+        expect($e->errorType)->toBeNull()->and($e->getCode())->toBe(402);
+    }
+
+    expect(fn () => retryClient([limitResponse()], $sleeps)->abort('r1'))
+        ->toThrow(SpendingLimitException::class);
+});
+
+test('a 402 is never retried and the SpendingLimitException message is capped at 500 characters', function () {
+    $sleeps = [];
+    $long = jsonResponse(402, ['error' => ['type' => 'x', 'message' => str_repeat('y', 900)]]);
+
+    try {
+        retryClient([$long, runBody(), new Response(200, [], '[]')], $sleeps)->scrape([Source::Reuters]);
+        $this->fail('SpendingLimitException expected');
+    } catch (SpendingLimitException $e) {
+        expect(mb_strlen($e->getMessage()))->toBeLessThan(560)->and($sleeps)->toBeEmpty();
+    }
+});
+
+test('scrape returns partial results when a 402 hits one collector and others succeeded', function () {
+    $history = [];
+    $client = makeClient([
+        TW => ['items' => [article('https://a.test/tw')]],
+        US => ['start' => limitResponse()],
+    ], $history, new Config(maxRetries: 0, maxConcurrency: 1));
+
+    $result = $client->scrape([Source::BbcNews, Source::Reuters, Source::TaipeiTimes]);
+
+    expect($result->entries->pluck('url')->all())->toBe(['https://a.test/tw'])
+        ->and($result->errors->pluck('collector')->all())->toContain(Collector::Us)
+        ->and($result->errors->first(fn ($e) => $e->collector === Collector::Us)->message)
+        ->toContain('spending limit reached');
+});
+
+test('after a 402 no further collector run is started and the skipped ones are reported', function () {
+    $history = [];
+    $client = makeClient([
+        TW => ['items' => [article('https://a.test/tw')]],
+        UK => ['start' => limitResponse()],
+    ], $history, new Config(maxRetries: 0, maxConcurrency: 1));
+
+    $result = $client->scrape([Source::BbcNews, Source::Reuters, Source::TaipeiTimes]);
+
+    expect(runStartQueries($history))->toHaveCount(2)
+        ->and($result->errors)->toHaveCount(2)
+        ->and($result->errors->last()->message)->toStartWith('Not started: ');
+});
+
+test('scrape throws SpendingLimitException when every collector hit the limit', function () {
+    $history = [];
+    $client = makeClient([
+        TW => ['start' => limitResponse()],
+        US => ['start' => limitResponse()],
+    ], $history);
+
+    expect(fn () => $client->scrape([Source::Reuters, Source::TaipeiTimes]))
+        ->toThrow(SpendingLimitException::class);
 });
 
 /**

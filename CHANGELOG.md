@@ -11,6 +11,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- `SpendingLimitException` (extends `ApiException`) for Apify HTTP 402 (usage or spending limit reached): code 402, `$errorType` with the Apify error type, never retried. `scrape()` stops starting collector runs after the first 402 and returns partial results with `CollectorError` entries when any article was collected; it throws the exception only when none was.
 - `Config::$runTimeout` (`?int` seconds, default null = `Config::$timeout`, 0 = Actor default, negative throws `InvalidArgumentException`) and a last optional `runTimeout` argument of `Client::scrape()` that overrides it per call (negative throws `InvalidInputException`). Only the run-start request (`POST /acts/{id}/runs`) carries it.
 - When `Config::$timeout` expires while waiting for a run, the run is now aborted (best effort, `POST /actor-runs/{id}/abort`, own timeout of at most 10 seconds, errors swallowed) so it does not keep running and billing. The collector error then reads `... and was aborted`; if the abort fails, the original message is kept. Only our own deadline aborts, never failed runs, rate limits or connection errors.
 - `Client::abort(string $runId)` and `ApiException::$runId`.

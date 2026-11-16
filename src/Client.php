@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GlobalNewsScraper;
 
+use ArrayObject;
 use Closure;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -16,7 +17,9 @@ use GlobalNewsScraper\Exception\ApiException;
 use GlobalNewsScraper\Exception\InvalidInputException;
 use GlobalNewsScraper\Exception\MissingApiKeyException;
 use GlobalNewsScraper\Exception\RateLimitException;
+use GlobalNewsScraper\Exception\SpendingLimitException;
 use GlobalNewsScraper\Support\Planner;
+use GlobalNewsScraper\Support\SpendingLimitError;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\BadResponseException;
@@ -263,9 +266,22 @@ final class Client
     private function execute(array $plans, array $options, ?int $runTimeout): ScrapeResult
     {
         $outcomes = [];
+        /** @var ArrayObject<string, SpendingLimitException> $limit */
+        $limit = new ArrayObject;
+        $skipped = [];
 
-        $runs = (function () use ($plans, $options, $runTimeout) {
+        $runs = (function () use ($plans, $options, $runTimeout, $limit, &$skipped) {
             foreach ($plans as $index => $plan) {
+                if (isset($limit['e'])) {
+                    // The account limit applies to every collector: do not start further runs
+                    $skipped[$index] = new CollectorError(
+                        $plan->collector,
+                        'Not started: '.$limit['e']->getMessage(),
+                    );
+
+                    continue;
+                }
+
                 yield $index => $this->runCollector($plan, $this->buildInput($plan, $options), $runTimeout);
             }
         })();
@@ -273,11 +289,17 @@ final class Client
         Each::ofLimit(
             $runs,
             max(1, $this->config->maxConcurrency),
-            static function (mixed $outcome, mixed $index) use (&$outcomes): void {
+            static function (mixed $outcome, mixed $index) use (&$outcomes, $limit): void {
+                if ($outcome instanceof SpendingLimitError) {
+                    $limit['e'] ??= $outcome->exception;
+                    $outcome = $outcome->error;
+                }
+
                 $outcomes[$index] = $outcome;
             },
         )->wait();
 
+        $outcomes += $skipped;
         ksort($outcomes);
 
         $articles = [];
@@ -291,6 +313,11 @@ final class Client
             }
 
             array_push($articles, ...$outcome);
+        }
+
+        // Partial results are returned; only when the limit stopped every collector without a single article it throws
+        if (isset($limit['e']) && $articles === []) {
+            throw $limit['e'];
         }
 
         return new ScrapeResult(
@@ -395,12 +422,14 @@ final class Client
                 // A coroutine resolves with its final yielded value, not with a return value
                 yield Create::promiseFor($this->articles($plan->collector, $items));
             } catch (ApiException $e) {
-                yield Create::promiseFor(new CollectorError(
+                $error = new CollectorError(
                     $plan->collector,
                     $e->getMessage(),
                     $e->runId ?? $knownRunId,
                     $e->statusMessage,
-                ));
+                );
+
+                yield Create::promiseFor($e instanceof SpendingLimitException ? new SpendingLimitError($error, $e) : $error);
             }
         });
     }
@@ -410,6 +439,7 @@ final class Client
      *
      * @throws ApiException
      * @throws RateLimitException
+     * @throws SpendingLimitException
      * @throws MissingApiKeyException
      */
     public function abort(string $runId): void
@@ -427,10 +457,10 @@ final class Client
         }
 
         $raw = mb_substr($statusMessage, 0, 2000);
-        $clean = trim((string) preg_replace('/[\p{Cc}\p{Cf}\x{2028}\x{2029}]+/u', ' ', $raw));
+        $clean = $this->clean($raw);
 
         if ($clean !== '') {
-            $message .= ': '.(mb_strlen($clean) > 500 ? mb_substr($clean, 0, 499).'…' : $clean);
+            $message .= ': '.$clean;
         }
 
         return new ApiException($message, 0, null, $runId, $raw);
@@ -627,6 +657,39 @@ final class Client
         return $decoded;
     }
 
+    /** Maps an HTTP 402 to a SpendingLimitException with the API's own error type and message (cleaned, capped). */
+    private function spendingLimit(ResponseInterface $response, Throwable $previous): SpendingLimitException
+    {
+        $type = null;
+        $detail = '';
+
+        try {
+            $body = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+        } catch (Throwable) {
+            $body = null;
+        }
+
+        $error = is_array($body) ? ($body['error'] ?? null) : null;
+
+        if (is_array($error)) {
+            $type = is_string($error['type'] ?? null) ? $this->clean($error['type']) : null;
+            $type = $type === '' ? null : $type;
+            $detail = is_string($error['message'] ?? null) ? $this->clean($error['message']) : '';
+        }
+
+        $message = 'Apify spending limit reached (HTTP 402)'.($detail !== '' ? ': '.$detail : '');
+
+        return new SpendingLimitException($message, $previous, null, null, $type);
+    }
+
+    /** Strips control characters and caps the text at 500 characters. */
+    private function clean(string $text): string
+    {
+        $clean = trim((string) preg_replace('/[\p{Cc}\p{Cf}\x{2028}\x{2029}]+/u', ' ', mb_substr($text, 0, 2000)));
+
+        return mb_strlen($clean) > 500 ? mb_substr($clean, 0, 499).'…' : $clean;
+    }
+
     private function failure(mixed $reason, ?float $fallbackRetryAfter = null): Throwable
     {
         if ($reason instanceof BadResponseException) {
@@ -636,6 +699,10 @@ final class Client
                 $retryAfter = $this->retryAfter($response) ?? (int) ceil($fallbackRetryAfter ?? 1.0);
 
                 return new RateLimitException('Rate limit exceeded', $retryAfter);
+            }
+
+            if ($response->getStatusCode() === 402) {
+                return $this->spendingLimit($response, $reason);
             }
 
             return new ApiException(
