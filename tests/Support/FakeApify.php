@@ -16,6 +16,7 @@ use Psr\Http\Message\RequestInterface;
  * - `statuses`: run statuses returned by the start call and then by each poll (default `['SUCCEEDED']`)
  * - `start`, `poll`, `dataset`: a Response that replaces the default answer of that call
  * - `abort`: a Response that replaces the default answer of the abort call
+ * - `statusMessage`: any value, set as `statusMessage` on every run answer (omitted by default)
  * - `datasetId`: null omits `defaultDatasetId` from the run
  */
 final class FakeApify
@@ -90,6 +91,10 @@ final class FakeApify
     private function run(string $actor, string $status): Response
     {
         $data = ['id' => "run-{$actor}", 'status' => $status];
+
+        if (array_key_exists('statusMessage', $this->actors[$actor] ?? [])) {
+            $data['statusMessage'] = $this->actors[$actor]['statusMessage'];
+        }
 
         if (array_key_exists('datasetId', $this->actors[$actor] ?? []) === false) {
             $data['defaultDatasetId'] = "ds-{$actor}";

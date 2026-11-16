@@ -9,12 +9,16 @@ use Throwable;
 
 class ApiException extends Exception
 {
-    /** @param  string|null  $runId  The Apify run this error is about, when known (e.g. a run that timed out). */
+    /**
+     * @param  string|null  $runId  The Apify run this error is about, when known (e.g. a run that timed out).
+     * @param  string|null  $statusMessage  The Actor's own reason (`statusMessage`) of a failed run, when known.
+     */
     public function __construct(
         string $message = '',
         int $code = 0,
         ?Throwable $previous = null,
         public readonly ?string $runId = null,
+        public readonly ?string $statusMessage = null,
     ) {
         parent::__construct($message, $code, $previous);
     }

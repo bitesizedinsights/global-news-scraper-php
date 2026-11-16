@@ -214,7 +214,7 @@ $result = $client->scrape(
 
 ## Error Handling for Partial News Results
 
-A failing collector run, for example a rate limit, a server error or a failed Actor run, does not throw. It is returned in `ScrapeResult::$errors` as a `CollectorError` (collector, message and, when known, the Apify run ID in `runId`, which can be passed to `Client::abort()`) while the articles of all other collectors are still returned. `hasErrors()` and `isComplete()` summarize the outcome.
+A failing collector run, for example a rate limit, a server error or a failed Actor run, does not throw. It is returned in `ScrapeResult::$errors` as a `CollectorError` (collector, message and, when known, the Apify run ID in `runId`, which can be passed to `Client::abort()`, and, for a failed run, the Actor's own reason in `statusMessage`) while the articles of all other collectors are still returned. `hasErrors()` and `isComplete()` summarize the outcome.
 
 Invalid input throws `InvalidInputException` (an `InvalidArgumentException`) before any request is sent, and a missing API key throws `MissingApiKeyException`.
 
@@ -264,7 +264,7 @@ $client->scrape(Source::BbcNews, runTimeout: 300);
 
 ### Aborting Runs
 
-When `timeout` expires, every collector run that is still pending is aborted with `POST /actor-runs/{id}/abort` (own request timeout of at most 10 seconds, no retries). A failing abort never hides the timeout: the error then keeps the plain message without `and was aborted`. Runs that ended as FAILED, ABORTED or TIMED-OUT, rate limits and connection errors never trigger an abort. `ApiException::$runId` carries the run ID when known. To stop a run yourself, call `$client->abort($runId)` (throws `ApiException` or `RateLimitException`).
+When `timeout` expires, every collector run that is still pending is aborted with `POST /actor-runs/{id}/abort` (own request timeout of at most 10 seconds, no retries). A failing abort never hides the timeout: the error then keeps the plain message without `and was aborted`. Runs that ended as FAILED, ABORTED or TIMED-OUT, rate limits and connection errors never trigger an abort. `ApiException::$runId` carries the run ID when known. When a run ends as FAILED, ABORTED or TIMED-OUT and the Actor reported a `statusMessage`, the message reads `Actor run ended with status FAILED: <reason>` (control characters stripped, at most 500 characters) and the raw reason (at most 2000 characters) is available as `$e->statusMessage` on `ApiException` and as `$error->statusMessage` on `CollectorError` (null when the Actor gave none; `toArray()` emits it only when set). The run ID is `$e->runId` or `$error->runId`. To stop a run yourself, call `$client->abort($runId)` (throws `ApiException` or `RateLimitException`).
 
 ### Retries and Backoff
 

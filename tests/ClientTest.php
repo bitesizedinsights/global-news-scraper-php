@@ -777,6 +777,48 @@ test('collector errors carry the run ID of failed and timed-out runs', function 
         ->and($timedOut->errors->first()->runId)->toBe('run-'.US);
 });
 
+test('a failed run adds the Actor statusMessage to the message and exposes it', function (string $status) {
+    $result = makeClient([US => ['statuses' => [$status], 'statusMessage' => 'Blocked by the source']])
+        ->scrape([Source::Reuters]);
+    $error = $result->errors->first();
+
+    expect($error->message)->toBe("Actor run ended with status {$status}: Blocked by the source")
+        ->and($error->statusMessage)->toBe('Blocked by the source')
+        ->and($error->runId)->toBe('run-'.US)
+        ->and($error->toArray()['statusMessage'])->toBe('Blocked by the source');
+})->with(['FAILED', 'ABORTED', 'TIMED-OUT']);
+
+test('a failed run without a usable statusMessage keeps the plain message', function (array $actor) {
+    $error = makeClient([US => ['statuses' => ['FAILED']] + $actor])->scrape([Source::Reuters])->errors->first();
+
+    expect($error->message)->toBe('Actor run ended with status FAILED')
+        ->and($error->statusMessage)->toBeNull()
+        ->and($error->toArray())->not->toHaveKey('statusMessage');
+})->with([
+    'missing' => [[]],
+    'empty string' => [['statusMessage' => '']],
+    'array' => [['statusMessage' => ['a']]],
+    'number' => [['statusMessage' => 5]],
+    'null' => [['statusMessage' => null]],
+]);
+
+test('statusMessage is stripped of control characters and capped in the message only', function () {
+    $raw = "Line one\nline\ttwo\x00".str_repeat('x', 3000);
+    $error = makeClient([US => ['statuses' => ['FAILED'], 'statusMessage' => $raw]])
+        ->scrape([Source::Reuters])->errors->first();
+    $reason = substr($error->message, strlen('Actor run ended with status FAILED: '));
+
+    expect(mb_strlen($reason))->toBe(500)
+        ->and($reason)->toStartWith('Line one line two x')
+        ->and($reason)->not->toMatch('/[\x00-\x1f]/')
+        ->and(mb_strlen((string) $error->statusMessage))->toBe(2000);
+});
+
+test('ApiException carries an optional statusMessage', function () {
+    expect((new ApiException('x'))->statusMessage)->toBeNull()
+        ->and((new ApiException('x', 0, null, 'r1', 'why'))->statusMessage)->toBe('why');
+});
+
 test('collector errors have no run ID when no run was started', function () {
     $result = makeClient([US => ['start' => jsonResponse(429, [])]])->scrape([Source::Reuters]);
 

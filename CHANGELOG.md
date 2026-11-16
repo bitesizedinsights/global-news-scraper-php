@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Changed
 
+- A failed, aborted or timed-out run now reads `Actor run ended with status X: <statusMessage>` when the Actor reported a non-empty `statusMessage` (control characters stripped, capped at 500 characters); without one the message is unchanged.
 - Behavior change: starting a collector run now sends the Apify `timeout` query parameter, by default `Config::$timeout`, so the platform stops a run when the client has given up (before, the run kept the Actor's own limit, 900 s). Set `Config::$runTimeout = 0` to send nothing and keep the Actor default.
 
 ### Added
@@ -13,6 +14,7 @@ All notable changes to this project are documented in this file. The format is b
 - `Config::$runTimeout` (`?int` seconds, default null = `Config::$timeout`, 0 = Actor default, negative throws `InvalidArgumentException`) and a last optional `runTimeout` argument of `Client::scrape()` that overrides it per call (negative throws `InvalidInputException`). Only the run-start request (`POST /acts/{id}/runs`) carries it.
 - When `Config::$timeout` expires while waiting for a run, the run is now aborted (best effort, `POST /actor-runs/{id}/abort`, own timeout of at most 10 seconds, errors swallowed) so it does not keep running and billing. The collector error then reads `... and was aborted`; if the abort fails, the original message is kept. Only our own deadline aborts, never failed runs, rate limits or connection errors.
 - `Client::abort(string $runId)` and `ApiException::$runId`.
+- `ApiException::$statusMessage` and `CollectorError::$statusMessage` (`?string`, default null), the raw `statusMessage` of a failed run capped at 2000 characters. `CollectorError::toArray()` emits `statusMessage` only when set, so the serialized shape is unchanged for runs without one.
 - `CollectorError::$runId`, the Apify run ID of a failed or timed-out collector run when known (otherwise null), so callers can inspect or abort the run. `toArray()` emits `runId` only when set.
 
 ## [0.2.0] - 2026-11-15

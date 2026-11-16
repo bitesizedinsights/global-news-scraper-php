@@ -351,7 +351,7 @@ final class Client
                     }
 
                     if (is_string($status) && in_array($status, self::FAILED_STATUSES, true)) {
-                        throw new ApiException("Actor run ended with status {$status}");
+                        throw $this->failedRun($status, $run['statusMessage'] ?? null, $knownRunId);
                     }
 
                     if (! is_string($status) || ! in_array($status, self::RUNNING_STATUSES, true)) {
@@ -395,7 +395,12 @@ final class Client
                 // A coroutine resolves with its final yielded value, not with a return value
                 yield Create::promiseFor($this->articles($plan->collector, $items));
             } catch (ApiException $e) {
-                yield Create::promiseFor(new CollectorError($plan->collector, $e->getMessage(), $e->runId ?? $knownRunId));
+                yield Create::promiseFor(new CollectorError(
+                    $plan->collector,
+                    $e->getMessage(),
+                    $e->runId ?? $knownRunId,
+                    $e->statusMessage,
+                ));
             }
         });
     }
@@ -410,6 +415,25 @@ final class Client
     public function abort(string $runId): void
     {
         $this->request('POST', '/actor-runs/'.rawurlencode($runId).'/abort')->wait();
+    }
+
+    /** Exception of a failed, aborted or timed-out run; the message adds the Actor's own reason when it has one. */
+    private function failedRun(string $status, mixed $statusMessage, ?string $runId): ApiException
+    {
+        $message = "Actor run ended with status {$status}";
+
+        if (! is_string($statusMessage) || $statusMessage === '') {
+            return new ApiException($message, 0, null, $runId);
+        }
+
+        $raw = mb_substr($statusMessage, 0, 2000);
+        $clean = trim((string) preg_replace('/[\p{Cc}\p{Cf}\x{2028}\x{2029}]+/u', ' ', $raw));
+
+        if ($clean !== '') {
+            $message .= ': '.(mb_strlen($clean) > 500 ? mb_substr($clean, 0, 499).'…' : $clean);
+        }
+
+        return new ApiException($message, 0, null, $runId, $raw);
     }
 
     /**
