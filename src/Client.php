@@ -102,6 +102,9 @@ final class Client
      *                                       `Article::$language` keeps the value declared by the source.
      * @param  bool  $withFixText  Repair broken text such as mojibake (`Article::$fixedText`); `Article::$text`
      *                             stays unchanged.
+     * @param  int|null  $runTimeout  Apify time limit of each collector run in seconds for this call, overriding
+     *                                `Config::$runTimeout`. Null = the config value (default: `Config::$timeout`),
+     *                                0 = send nothing and keep the Actor's own default. Negative values throw.
      *
      * @throws InvalidInputException
      * @throws MissingApiKeyException
@@ -118,8 +121,15 @@ final class Client
         bool $with5w1h = false,
         bool $withLanguageDetection = false,
         bool $withFixText = false,
+        ?int $runTimeout = null,
     ): ScrapeResult {
         $plans = $this->plan($sources);
+
+        if ($runTimeout !== null && $runTimeout < 0) {
+            throw new InvalidInputException(
+                'runTimeout must be a positive number of seconds, or 0 for the Actor default',
+            );
+        }
 
         $options = [];
 
@@ -178,7 +188,7 @@ final class Client
 
         $this->resolveApiKey();
 
-        return $this->execute($plans, $options);
+        return $this->execute($plans, $options, $runTimeout);
     }
 
     private function searchQuery(string $query): string
@@ -250,13 +260,13 @@ final class Client
      * @param  list<RunPlan>  $plans
      * @param  array<string, mixed>  $options
      */
-    private function execute(array $plans, array $options): ScrapeResult
+    private function execute(array $plans, array $options, ?int $runTimeout): ScrapeResult
     {
         $outcomes = [];
 
-        $runs = (function () use ($plans, $options) {
+        $runs = (function () use ($plans, $options, $runTimeout) {
             foreach ($plans as $index => $plan) {
-                yield $index => $this->runCollector($plan, $this->buildInput($plan, $options));
+                yield $index => $this->runCollector($plan, $this->buildInput($plan, $options), $runTimeout);
             }
         })();
 
@@ -311,16 +321,25 @@ final class Client
      * Start the run, wait for it and read its dataset. API failures resolve to a CollectorError.
      *
      * @param  array<string, mixed>  $input
+     * @param  int|null  $runTimeout  Per-call override of the run's Apify time limit (null = config, 0 = none).
      * @return PromiseInterface Resolves to `list<Article>` or a `CollectorError`.
      */
-    private function runCollector(RunPlan $plan, array $input): PromiseInterface
+    private function runCollector(RunPlan $plan, array $input, ?int $runTimeout): PromiseInterface
     {
-        return Coroutine::of(function () use ($plan, $input) {
+        return Coroutine::of(function () use ($plan, $input, $runTimeout) {
             $knownRunId = null;
 
             try {
                 $actor = str_replace('/', '~', $plan->collector->actorId());
-                $run = $this->runData(yield $this->request('POST', "/acts/{$actor}/runs", ['json' => $input]));
+                $start = ['json' => $input];
+                $limit = $runTimeout ?? $this->config->runTimeout ?? $this->config->timeout;
+
+                // Apify's own time limit of the run; only the run start carries it. 0 keeps the Actor default.
+                if ($limit > 0) {
+                    $start['query'] = ['timeout' => $limit];
+                }
+
+                $run = $this->runData(yield $this->request('POST', "/acts/{$actor}/runs", $start));
                 $knownRunId = is_string($run['id'] ?? null) ? $run['id'] : null;
                 $deadline = time() + $this->config->timeout;
 

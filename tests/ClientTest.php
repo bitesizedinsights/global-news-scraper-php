@@ -18,6 +18,7 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Collection;
+use Psr\Http\Message\RequestInterface;
 
 const US = 'bite-sized-insights~us-news-scraper';
 const UK = 'bite-sized-insights~uk-news-scraper';
@@ -781,4 +782,107 @@ test('collector errors have no run ID when no run was started', function () {
 
     expect($result->errors->first()->runId)->toBeNull()
         ->and($result->errors->first()->toArray())->not->toHaveKey('runId');
+});
+
+/**
+ * @param  list<array{request: RequestInterface}>  $history
+ * @return list<string>
+ */
+function runStartQueries(array $history): array
+{
+    $queries = [];
+
+    foreach ($history as $entry) {
+        $uri = $entry['request']->getUri();
+
+        if ($entry['request']->getMethod() === 'POST' && str_ends_with($uri->getPath(), '/runs')) {
+            $queries[] = $uri->getQuery();
+        }
+    }
+
+    return $queries;
+}
+
+test('the run start sends the client timeout as the Apify run timeout by default', function () {
+    $history = [];
+    $client = makeClient([US => ['statuses' => ['RUNNING']]], $history, new Config(timeout: 1200, maxRetries: 0));
+
+    $client->scrape(Source::NewYorkTimes);
+
+    expect(runStartQueries($history))->toBe(['timeout=1200']);
+});
+
+test('Config::$runTimeout wins over the client timeout', function () {
+    $history = [];
+    $client = makeClient([US => []], $history, new Config(timeout: 1200, maxRetries: 0, runTimeout: 300));
+
+    $client->scrape(Source::NewYorkTimes);
+
+    expect(runStartQueries($history))->toBe(['timeout=300']);
+});
+
+test('the per-call runTimeout wins over the config', function () {
+    $history = [];
+    $client = makeClient([US => []], $history, new Config(timeout: 1200, maxRetries: 0, runTimeout: 300));
+
+    $client->scrape(Source::NewYorkTimes, runTimeout: 45);
+
+    expect(runStartQueries($history))->toBe(['timeout=45']);
+});
+
+test('runTimeout 0 sends no timeout, in the config and per call', function () {
+    $history = [];
+    makeClient([US => []], $history, new Config(maxRetries: 0, runTimeout: 0))->scrape(Source::NewYorkTimes);
+
+    expect(runStartQueries($history))->toBe(['']);
+
+    $history = [];
+    makeClient([US => []], $history)->scrape(Source::NewYorkTimes, runTimeout: 0);
+
+    expect(runStartQueries($history))->toBe(['']);
+});
+
+test('a per-call runTimeout of 0 beats a configured one', function () {
+    $history = [];
+    makeClient([US => []], $history, new Config(maxRetries: 0, runTimeout: 300))
+        ->scrape(Source::NewYorkTimes, runTimeout: 0);
+
+    expect(runStartQueries($history))->toBe(['']);
+});
+
+test('only the run start carries the timeout, not polling or dataset requests', function () {
+    $history = [];
+    $client = makeClient([US => ['statuses' => ['RUNNING']]], $history, new Config(timeout: 600, maxRetries: 0));
+
+    $client->scrape(Source::NewYorkTimes);
+
+    $others = array_filter($history, fn ($h) => $h['request']->getMethod() === 'GET');
+
+    expect($others)->not->toBeEmpty();
+
+    foreach ($others as $entry) {
+        expect($entry['request']->getUri()->getQuery())->not->toContain('timeout=');
+    }
+});
+
+test('every concurrent collector run carries the run timeout', function () {
+    $history = [];
+    $client = makeClient(
+        [US => [], UK => [], TW => []],
+        $history,
+        new Config(timeout: 700, maxRetries: 0, maxConcurrency: 3),
+    );
+
+    $client->scrape([Source::BbcNews, Source::Reuters, Source::TaipeiTimes], runTimeout: 120);
+
+    expect(runStartQueries($history))->toBe(['timeout=120', 'timeout=120', 'timeout=120']);
+});
+
+test('a negative per-call runTimeout throws before any request', function () {
+    $history = [];
+    $client = makeClient([US => []], $history);
+
+    expect(fn () => $client->scrape(Source::NewYorkTimes, runTimeout: -1))
+        ->toThrow(InvalidInputException::class, 'runTimeout must be a positive number of seconds');
+    expect($history)->toBeEmpty();
 });

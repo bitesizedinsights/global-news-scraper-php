@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace GlobalNewsScraper;
 
+use InvalidArgumentException;
+
 final readonly class Config
 {
     /**
      * @param  int  $timeout  Maximum seconds to wait for each collector run to finish.
+     * @param  int|null  $runTimeout  Apify's own time limit of each collector run in seconds, sent as the `timeout`
+     *                                query parameter of the run start (never on polling, abort or dataset requests).
+     *                                Null = use `$timeout`, so the platform stops a run when the client has given
+     *                                up. 0 = send nothing and keep the Actor's own default. Negative values throw.
+     *                                `scrape()` can override it per call.
      * @param  int  $requestTimeout  Timeout in seconds of a single HTTP request.
      * @param  int  $maxConcurrency  Collector runs executed at the same time (1 or more). The default of 2 keeps
      *                               the load on the shared news backend moderate: every run already fetches
@@ -25,5 +32,12 @@ final readonly class Config
         public int $maxRetries = 3,
         public float $retryBaseDelay = 1.0,
         public float $retryMaxDelay = 30.0,
-    ) {}
+        public ?int $runTimeout = null,
+    ) {
+        if ($runTimeout !== null && $runTimeout < 0) {
+            throw new InvalidArgumentException(
+                'runTimeout must be a positive number of seconds, or 0 for the Actor default',
+            );
+        }
+    }
 }

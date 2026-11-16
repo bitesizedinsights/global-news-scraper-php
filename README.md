@@ -247,11 +247,20 @@ $client = (new Client(new Config(maxConcurrency: 3, timeout: 1200)))->setApifyKe
 | --- | --- | --- |
 | `maxConcurrency` | 2 | Collector runs active at the same time. Every run already fetches several articles in parallel on the shared news backend, so the default of 2 keeps the load moderate. Raise it for faster multi-country runs. |
 | `timeout` | 900 | Seconds to wait for each collector run to finish. When it expires, the run is aborted (best effort) so it does not keep running and billing; the collector error then says `Actor run did not finish within N seconds and was aborted`. |
+| `runTimeout` | null | Apify's own time limit of each collector run in seconds. Null sends `timeout` (default 900), 0 sends nothing and keeps the Actor's own default. See [Run Timeout](#run-timeout). |
 | `requestTimeout` | 90 | Timeout in seconds of a single HTTP request. |
 | `maxRetries` | 3 | How often a failed request is repeated (0 turns retrying off). See below. |
 | `retryBaseDelay` | 1.0 | Seconds before the first retry; doubles with each retry. |
 | `retryMaxDelay` | 30.0 | Longest wait before a retry. |
 | `baseUrl` | `https://api.apify.com/v2` | Apify API base URL. |
+
+### Run Timeout
+
+Every collector run is started with the Apify `timeout` query parameter (seconds), so the platform stops the run when the client has given up instead of letting it run to the Actor's own limit and bill. By default the value is `Config::$timeout` (900 s). Set `Config::$runTimeout` to use another value, or `0` to send nothing and keep the Actor's own default. `scrape()` takes a last optional argument `runTimeout` that overrides the config for one call (`0` again means the Actor default); negative values throw. The parameter is only sent on the run-start request (`POST /acts/{id}/runs`), never when polling, aborting or reading datasets, and it is separate from `requestTimeout`, the HTTP timeout of a single request.
+
+```php
+$client->scrape(Source::BbcNews, runTimeout: 300);
+```
 
 ### Aborting Runs
 
