@@ -172,8 +172,8 @@ test('collector failures are reported per collector', function (array $actor, st
         ->and($result->errors)->toHaveCount(1)
         ->and($result->errors->first()->message)->toContain($message);
 })->with([
-    'rate limit' => [['start' => jsonResponse(429, [])], 'Rate limit exceeded'],
-    'server error' => [['start' => jsonResponse(500, ['error' => 'x'])], 'status 500'],
+    'rate limit' => [['start' => jsonResponse(429, [])], 'rate limit reached'],
+    'server error' => [['start' => jsonResponse(500, ['error' => 'x'])], 'HTTP 500'],
     'malformed json' => [['start' => new Response(200, [], 'not json')], 'malformed JSON'],
     'json scalar' => [['start' => new Response(200, [], '"text"')], 'unexpected JSON'],
     'no run data' => [['start' => jsonResponse(201, ['x' => 1])], 'missing run data'],
@@ -181,7 +181,7 @@ test('collector failures are reported per collector', function (array $actor, st
     'timed out run' => [['statuses' => ['TIMED-OUT']], 'TIMED-OUT'],
     'unknown status' => [['statuses' => ['WEIRD']], 'unknown run status'],
     'missing dataset' => [['datasetId' => null], 'missing dataset ID'],
-    'dataset error' => [['dataset' => jsonResponse(500, [])], 'status 500'],
+    'dataset error' => [['dataset' => jsonResponse(500, [])], 'HTTP 500'],
     'item not an object' => [['items' => ['text']], 'Invalid dataset item at index 0'],
     'item without url' => [['items' => [article('https://a.test/1'), ['text' => 'x']]], 'item at index 1'],
 ]);
@@ -190,7 +190,7 @@ test('rate limit failures keep the retry-after advice in the error message', fun
     $result = makeClient([US => ['start' => jsonResponse(429, [], ['Retry-After' => '12'])]])
         ->scrape([Source::Reuters]);
 
-    expect($result->errors->first()->message)->toBe('Rate limit exceeded');
+    expect($result->errors->first()->message)->toBe('Apify API rate limit reached (retry after 12 seconds)');
 });
 
 test('an empty dataset yields no entries and no error', function () {
@@ -585,7 +585,7 @@ test('retrying stops after maxRetries', function () {
 
     $result = $client->scrape([Source::Reuters]);
 
-    expect($result->errors->first()->message)->toContain('status 500')->and($sleeps)->toHaveCount(2);
+    expect($result->errors->first()->message)->toContain('HTTP 500')->and($sleeps)->toHaveCount(2);
 });
 
 test('the run start is retried after 429 and a failed connection', function () {
@@ -672,7 +672,7 @@ test('a Retry-After above retryMaxDelay is not waited out', function () {
     $sleeps = [];
     $result = retryClient([new Response(429, ['Retry-After' => '120'], '{}')], $sleeps)->scrape([Source::Reuters]);
 
-    expect($sleeps)->toBeEmpty()->and($result->errors->first()->message)->toBe('Rate limit exceeded');
+    expect($sleeps)->toBeEmpty()->and($result->errors->first()->message)->toContain('retry after 120 seconds');
 });
 
 test('maxRetries 0 turns retrying off', function () {

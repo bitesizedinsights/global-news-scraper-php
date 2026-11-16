@@ -20,7 +20,8 @@ final class SpendingLimitException extends ApiException
         ?string $runId = null,
         ?string $statusMessage = null,
         public readonly ?string $errorType = null,
+        ?string $responseBody = null,
     ) {
-        parent::__construct($message, 402, $previous, $runId, $statusMessage);
+        parent::__construct($message, 402, $previous, $runId, $statusMessage, $responseBody);
     }
 }

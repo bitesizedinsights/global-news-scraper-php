@@ -18,6 +18,7 @@ use GlobalNewsScraper\Exception\InvalidInputException;
 use GlobalNewsScraper\Exception\MissingApiKeyException;
 use GlobalNewsScraper\Exception\RateLimitException;
 use GlobalNewsScraper\Exception\SpendingLimitException;
+use GlobalNewsScraper\Support\ErrorText;
 use GlobalNewsScraper\Support\Planner;
 use GlobalNewsScraper\Support\SpendingLimitError;
 use GuzzleHttp\Client as HttpClient;
@@ -457,7 +458,7 @@ final class Client
         }
 
         $raw = mb_substr($statusMessage, 0, 2000);
-        $clean = $this->clean($raw);
+        $clean = ErrorText::clean($raw);
 
         if ($clean !== '') {
             $message .= ': '.$clean;
@@ -644,78 +645,68 @@ final class Client
      */
     private function decode(ResponseInterface $response): array
     {
+        $raw = $response->getBody()->getContents();
+
         try {
-            $decoded = json_decode($response->getBody()->getContents(), true, 512, JSON_THROW_ON_ERROR);
+            $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
-            throw new ApiException('Invalid API response: malformed JSON', 0, $e);
+            throw new ApiException('Invalid API response: malformed JSON', 0, $e, null, null, ErrorText::body($raw));
         }
 
         if (! is_array($decoded)) {
-            throw new ApiException('Invalid API response: unexpected JSON');
+            throw new ApiException(
+                'Invalid API response: unexpected JSON',
+                0,
+                null,
+                null,
+                null,
+                ErrorText::body($raw),
+            );
         }
 
         return $decoded;
-    }
-
-    /** Maps an HTTP 402 to a SpendingLimitException with the API's own error type and message (cleaned, capped). */
-    private function spendingLimit(ResponseInterface $response, Throwable $previous): SpendingLimitException
-    {
-        $type = null;
-        $detail = '';
-
-        try {
-            $body = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-        } catch (Throwable) {
-            $body = null;
-        }
-
-        $error = is_array($body) ? ($body['error'] ?? null) : null;
-
-        if (is_array($error)) {
-            $type = is_string($error['type'] ?? null) ? $this->clean($error['type']) : null;
-            $type = $type === '' ? null : $type;
-            $detail = is_string($error['message'] ?? null) ? $this->clean($error['message']) : '';
-        }
-
-        $message = 'Apify spending limit reached (HTTP 402)'.($detail !== '' ? ': '.$detail : '');
-
-        return new SpendingLimitException($message, $previous, null, null, $type);
-    }
-
-    /** Strips control characters and caps the text at 500 characters. */
-    private function clean(string $text): string
-    {
-        $clean = trim((string) preg_replace('/[\p{Cc}\p{Cf}\x{2028}\x{2029}]+/u', ' ', mb_substr($text, 0, 2000)));
-
-        return mb_strlen($clean) > 500 ? mb_substr($clean, 0, 499).'…' : $clean;
     }
 
     private function failure(mixed $reason, ?float $fallbackRetryAfter = null): Throwable
     {
         if ($reason instanceof BadResponseException) {
             $response = $reason->getResponse();
+            $status = $response->getStatusCode();
+            $raw = (string) $response->getBody();
+            $body = ErrorText::body($raw);
 
-            if ($response->getStatusCode() === 429) {
+            if ($status === 429) {
                 $retryAfter = $this->retryAfter($response) ?? (int) ceil($fallbackRetryAfter ?? 1.0);
 
-                return new RateLimitException('Rate limit exceeded', $retryAfter);
+                return new RateLimitException(
+                    "Apify API rate limit reached (retry after {$retryAfter} seconds)",
+                    $retryAfter,
+                    $body,
+                );
             }
 
-            if ($response->getStatusCode() === 402) {
-                return $this->spendingLimit($response, $reason);
+            $message = ErrorText::http($status, $raw);
+
+            if ($status === 402) {
+                [$type, $detail] = ErrorText::parse($raw);
+
+                return new SpendingLimitException(
+                    'Apify spending limit reached (HTTP 402)'.($detail !== null ? ': '.$detail : ''),
+                    $reason,
+                    null,
+                    null,
+                    $type,
+                    $body,
+                );
             }
 
-            return new ApiException(
-                "API request failed with status {$response->getStatusCode()}: ".$reason->getMessage(),
-                $response->getStatusCode(),
-                $reason,
-            );
+            return new ApiException($message, $status, $reason, null, null, $body);
         }
 
         if ($reason instanceof GuzzleException) {
-            return new ApiException('API request failed: '.$reason->getMessage(), 0, $reason);
+            return new ApiException(ErrorText::transport($reason), 0, $reason);
         }
 
-        return $reason instanceof Throwable ? $reason : new ApiException('API request failed');
+        return $reason instanceof Throwable ? $reason : new ApiException('Apify API request failed');
     }
 }

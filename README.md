@@ -278,6 +278,23 @@ Failed requests are retried automatically, by default up to 3 times with exponen
 
 A collector that still fails after the retries is reported in `ScrapeResult::$errors` as before.
 
+### Exception messages
+
+Exception messages (and so `CollectorError::$message`) never contain the request URL, query string, headers or the raw response body, so they are safe to log. They are built from the HTTP status and the Apify error `type` and `message` of the JSON error body, for example `Apify API request failed (HTTP 502): internal-error: Try again later`. Without a usable body the message is `Apify API request failed (HTTP 502)`. Failures without a response read `Apify API request failed: connection error (ConnectException)` or `Apify API request failed: timed out (ConnectException)`. A 429 reads `Apify API rate limit reached (retry after N seconds)` and a 402 `Apify spending limit reached (HTTP 402): <Apify message>`. Every message part is capped at 500 characters.
+
+The raw response body (control characters stripped, at most 2000 characters) is available as `$e->responseBody` on `ApiException`, `RateLimitException` and `SpendingLimitException` (null when there was no body):
+
+```php
+try {
+    $client->abort($runId);
+} catch (ApiException $e) {
+    error_log($e->getMessage());
+    $details = $e->responseBody; // may contain the full API answer, treat as sensitive
+}
+```
+
+The underlying Guzzle exception stays available via `getPrevious()`; its message contains the request URL, so do not log it blindly.
+
 ## News Sources and Collectors Included
 
 35+ collectors cover 627 outlets. `Source::cases()` lists all of them, `Collector::cases()` the collectors, and `Collector::sources()` the outlets of one collector.

@@ -6,11 +6,13 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Changed
 
+- Exception messages no longer embed Guzzle's message, so they contain no request URL, query string or raw response body. They are built from the HTTP status and the Apify error `type` and `message` (`Apify API request failed (HTTP 502): type: message`, generic without a parsable body), transport failures read `Apify API request failed: connection error|timed out (ClassName)`, 429 reads `Apify API rate limit reached (retry after N seconds)` (before: `Rate limit exceeded`). `CollectorError` messages change accordingly (before: `API request failed with status 500: ...`).
 - A failed, aborted or timed-out run now reads `Actor run ended with status X: <statusMessage>` when the Actor reported a non-empty `statusMessage` (control characters stripped, capped at 500 characters); without one the message is unchanged.
 - Behavior change: starting a collector run now sends the Apify `timeout` query parameter, by default `Config::$timeout`, so the platform stops a run when the client has given up (before, the run kept the Actor's own limit, 900 s). Set `Config::$runTimeout = 0` to send nothing and keep the Actor default.
 
 ### Added
 
+- `ApiException::$responseBody` (`?string`, last optional constructor parameter, also on `RateLimitException` and `SpendingLimitException`): the raw response body, control characters stripped and capped at 2000 characters, null without a body.
 - `SpendingLimitException` (extends `ApiException`) for Apify HTTP 402 (usage or spending limit reached): code 402, `$errorType` with the Apify error type, never retried. `scrape()` stops starting collector runs after the first 402 and returns partial results with `CollectorError` entries when any article was collected; it throws the exception only when none was.
 - `Config::$runTimeout` (`?int` seconds, default null = `Config::$timeout`, 0 = Actor default, negative throws `InvalidArgumentException`) and a last optional `runTimeout` argument of `Client::scrape()` that overrides it per call (negative throws `InvalidInputException`). Only the run-start request (`POST /acts/{id}/runs`) carries it.
 - When `Config::$timeout` expires while waiting for a run, the run is now aborted (best effort, `POST /actor-runs/{id}/abort`, own timeout of at most 10 seconds, errors swallowed) so it does not keep running and billing. The collector error then reads `... and was aborted`; if the abort fails, the original message is kept. Only our own deadline aborts, never failed runs, rate limits or connection errors.
