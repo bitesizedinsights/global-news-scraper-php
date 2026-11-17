@@ -9,8 +9,8 @@ use GlobalNewsScraper\SourceMap;
 test('every source value is a snake case key and unique', function () {
     $values = array_map(fn (Source $s) => $s->value, Source::cases());
 
-    expect($values)->toHaveCount(721)
-        ->and(array_unique($values))->toHaveCount(721)
+    expect($values)->toHaveCount(682)
+        ->and(array_unique($values))->toHaveCount(682)
         ->and(array_filter($values, fn (string $v) => preg_match('/^[a-z0-9_]+$/', $v) !== 1))->toBe([]);
 });
 
@@ -40,5 +40,5 @@ test('collector sources match the generated map', function () {
     }
 
     expect(Collector::Us->sources())->toContain(Source::WashingtonPost)
-        ->and(count(Collector::Us->sources()))->toBe(31);
+        ->and(count(Collector::Us->sources()))->toBe(29);
 });

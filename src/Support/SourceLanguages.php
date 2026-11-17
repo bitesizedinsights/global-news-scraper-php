@@ -112,12 +112,11 @@ final class SourceLanguages
         'suedostschweiz' => SourceGroup::German,
         'inside_paradeplatz' => SourceGroup::German,
         'watson_fr' => SourceGroup::French,
-        'le_courrier' => SourceGroup::French,
         'ghi' => SourceGroup::French,
         'corriere_del_ticino' => SourceGroup::Italian,
         'ticinonews' => SourceGroup::Italian,
         'la_regione' => SourceGroup::Italian,
-        // pk: Urdu, Pashto, Sindhi and Saraiki outlets (no collector default)
+        // pk: Urdu, Pashto and Sindhi outlets (no collector default)
         'jang' => SourceGroup::Urdu,
         'express_urdu' => SourceGroup::Urdu,
         'independent_urdu' => SourceGroup::Urdu,
@@ -128,9 +127,7 @@ final class SourceLanguages
         'ary_news_urdu' => SourceGroup::Urdu,
         'app_pashto' => SourceGroup::Pashto,
         'bbc_pashto' => SourceGroup::Pashto,
-        'app_sindhi' => SourceGroup::Sindhi,
         'awami_awaz' => SourceGroup::Sindhi,
-        'app_saraiki' => SourceGroup::Saraiki,
         // ph: English-language outlets (no collector default)
         'inquirer' => SourceGroup::English,
         'manila_times' => SourceGroup::English,
@@ -140,24 +137,19 @@ final class SourceLanguages
         'businessworld' => SourceGroup::English,
         'mindanews' => SourceGroup::English,
         'mindanao_times' => SourceGroup::English,
-        'techpinas' => SourceGroup::English,
         'unbox_ph' => SourceGroup::English,
         'tiebreaker_times' => SourceGroup::English,
         // ph: Philippine-language outlets
         'abante_tonite' => SourceGroup::Tagalog,
         'gma_ulat_filipino' => SourceGroup::Tagalog,
-        'boses_ti_amianan' => SourceGroup::Ilocano,
         'ilocos_times_iluko' => SourceGroup::Ilocano,
         'bombo_radyo_iloilo' => SourceGroup::Hiligaynon,
         'bombo_radyo_bacolod' => SourceGroup::Hiligaynon,
         'bombo_radyo_legazpi' => SourceGroup::Bikol,
         'bombo_radyo_naga' => SourceGroup::Bikol,
-        'bombo_radyo_tacloban' => SourceGroup::Waray,
         // kurdish: one entry per outlet; mixed feeds get the first-listed (main) variety (no collector default)
         'botan_times' => SourceGroup::Kurmanji,
         'zazaki_news' => SourceGroup::Zazaki,
-        'rudaw' => SourceGroup::Sorani,
-        'hengaw' => SourceGroup::Sorani,
         'voa_kurdish_sorani' => SourceGroup::Sorani,
         'voa_kurdish_kurmanji' => SourceGroup::Kurmanji,
     ];

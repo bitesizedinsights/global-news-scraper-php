@@ -54,7 +54,7 @@ test('languages are assigned as documented', function () {
         ->and(Source::Nrk->language())->toBe(SourceGroup::Norwegian)
         ->and(Source::Svt->language())->toBe(SourceGroup::Swedish)
         ->and(Source::Matichon->language())->toBe(SourceGroup::Thai)
-        ->and(Source::ChosunIlbo->language())->toBe(SourceGroup::Korean)
+        ->and(Source::DongAIlbo->language())->toBe(SourceGroup::Korean)
         ->and(Source::AsahiShimbun->language())->toBe(SourceGroup::Japanese)
         ->and(Source::TuoiTre->language())->toBe(SourceGroup::Vietnamese)
         ->and(Source::Onet->language())->toBe(SourceGroup::Polish)
@@ -74,14 +74,12 @@ test('languages are assigned as documented', function () {
         ->and(Source::CorriereDelTicino->language())->toBe(SourceGroup::Italian)
         ->and(Source::Jang->language())->toBe(SourceGroup::Urdu)
         ->and(Source::AppPashto->language())->toBe(SourceGroup::Pashto)
-        ->and(Source::AppSindhi->language())->toBe(SourceGroup::Sindhi)
-        ->and(Source::AppSaraiki->language())->toBe(SourceGroup::Saraiki)
-        ->and(Source::BosesTiAmianan->language())->toBe(SourceGroup::Ilocano)
+        ->and(Source::AwamiAwaz->language())->toBe(SourceGroup::Sindhi)
+        ->and(Source::IlocosTimesIluko->language())->toBe(SourceGroup::Ilocano)
         ->and(Source::BomboRadyoIloilo->language())->toBe(SourceGroup::Hiligaynon)
         ->and(Source::BomboRadyoLegazpi->language())->toBe(SourceGroup::Bikol)
-        ->and(Source::BomboRadyoTacloban->language())->toBe(SourceGroup::Waray)
         ->and(Source::VoaKurdishKurmanji->language())->toBe(SourceGroup::Kurmanji)
-        ->and(Source::Rudaw->language())->toBe(SourceGroup::Sorani)
+        ->and(Source::VoaKurdishSorani->language())->toBe(SourceGroup::Sorani)
         ->and(Source::ZazakiNews->language())->toBe(SourceGroup::Zazaki);
 });
 
@@ -109,16 +107,14 @@ test('a group plans the collectors that offer its sources', function () {
         ->and($collectors(SourceGroup::Urdu))->toBe(['pk'])
         ->and($collectors(SourceGroup::Pashto))->toBe(['pk'])
         ->and($collectors(SourceGroup::Sindhi))->toBe(['pk'])
-        ->and($collectors(SourceGroup::Saraiki))->toBe(['pk'])
         ->and($collectors(SourceGroup::Tagalog))->toBe(['ph'])
         ->and($collectors(SourceGroup::Ilocano))->toBe(['ph'])
         ->and($collectors(SourceGroup::Hiligaynon))->toBe(['ph'])
         ->and($collectors(SourceGroup::Bikol))->toBe(['ph'])
-        ->and($collectors(SourceGroup::Waray))->toBe(['ph'])
         ->and($collectors(SourceGroup::Kurmanji))->toBe(['kurdish'])
         ->and($collectors(SourceGroup::Sorani))->toBe(['kurdish'])
         ->and($collectors(SourceGroup::Zazaki))->toBe(['kurdish'])
-        ->and($collectors(SourceGroup::Spanish))->toBe(['mx', 'latam', 'es', 'gt', 'py']);
+        ->and($collectors(SourceGroup::Spanish))->toBe(['latam', 'mx', 'es', 'gt', 'py']);
 });
 
 // `id-en` offers only outlets that `sea` covers as well, so the planner never needs a run for it.

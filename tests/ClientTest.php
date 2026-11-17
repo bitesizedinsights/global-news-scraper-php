@@ -81,15 +81,15 @@ test('collectors run separately and results are merged in plan order (smallest c
 
     expect($result->entries->map(fn ($a) => [$a->collection, $a->url])->all())->toBe([
         ['tw-en', 'https://a.test/tw'],
-        ['uk', 'https://a.test/uk'],
         ['us', 'https://a.test/us'],
+        ['uk', 'https://a.test/uk'],
     ])->and($result->entries->first()->type)->toBe(ArticleType::Video);
 
     $paths = array_map(fn ($h) => $h['request']->getUri()->getPath(), array_filter(
         $history,
         fn ($h) => $h['request']->getMethod() === 'POST',
     ));
-    expect(array_values($paths))->toBe(['/v2/acts/'.TW.'/runs', '/v2/acts/'.UK.'/runs', '/v2/acts/'.US.'/runs']);
+    expect(array_values($paths))->toBe(['/v2/acts/'.TW.'/runs', '/v2/acts/'.US.'/runs', '/v2/acts/'.UK.'/runs']);
 });
 
 test('merged results are deduplicated by URL', function () {
@@ -132,8 +132,8 @@ test('plan shows the runs without sending a request', function () {
     $plans = $client->plan([Source::BbcNews, Source::WashingtonPost]);
 
     expect($plans)->toHaveCount(2)
-        ->and($plans[0]->collector)->toBe(Collector::Uk)
-        ->and($plans[1]->sources)->toBe([Source::WashingtonPost])
+        ->and($plans[0]->collector)->toBe(Collector::Us)
+        ->and($plans[1]->sources)->toBe([Source::BbcNews])
         ->and($history)->toBe([]);
 });
 
@@ -899,7 +899,7 @@ test('after a 402 no further collector run is started and the skipped ones are r
     $history = [];
     $client = makeClient([
         TW => ['items' => [article('https://a.test/tw')]],
-        UK => ['start' => limitResponse()],
+        US => ['start' => limitResponse()],
     ], $history, new Config(maxRetries: 0, maxConcurrency: 1));
 
     $result = $client->scrape([Source::BbcNews, Source::WashingtonPost, Source::TaipeiTimes]);

@@ -40,8 +40,6 @@ enum SourceGroup: string
     case Urdu = 'ur';
     case Pashto = 'ps';
     case Sindhi = 'sd';
-    /** Saraiki: ISO 639-3 code, it has no ISO 639-1 code. */
-    case Saraiki = 'skr';
     /** Filipino/Tagalog. */
     case Tagalog = 'tl';
     /** Ilocano: ISO 639-3 code, it has no ISO 639-1 code. */
@@ -50,8 +48,6 @@ enum SourceGroup: string
     case Hiligaynon = 'hil';
     /** Bikol: ISO 639-3 macrolanguage code, it has no ISO 639-1 code. */
     case Bikol = 'bcl';
-    /** Waray: ISO 639-3 code, it has no ISO 639-1 code. */
-    case Waray = 'war';
     /**
      * Kurdish is split by variety, as the Kurdish collector documents it: Kurmanji (Latin script), Sorani (Arabic
      * script) and Zazaki. The ISO 639-1 code `ku` would merge them, so the ISO 639-3 / BCP 47 codes are used.

@@ -28,8 +28,8 @@ test('sources of one collector need a single run', function () {
 test('sources are split over their collectors', function () {
     expect(planSummary([Source::BbcNews, Source::WashingtonPost, Source::TaipeiTimes]))->toBe([
         'tw-en' => ['taipei_times'],
-        'uk' => ['bbc_news'],
         'us' => ['washington_post'],
+        'uk' => ['bbc_news'],
     ]);
 });
 

@@ -124,8 +124,8 @@ Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Sou
 | `SourceGroup::Hebrew` | Israel (Hebrew-language outlets, `il`) |
 | `SourceGroup::Hindi` | India (Hindi-language outlets, `in`) |
 | `SourceGroup::Chinese` | Taiwan (Traditional Chinese-language outlets, `tw`) |
-| `SourceGroup::Urdu`, `SourceGroup::Pashto`, `SourceGroup::Sindhi`, `SourceGroup::Saraiki` | the Pakistani outlets per language (`pk`) |
-| `SourceGroup::Tagalog`, `SourceGroup::Ilocano`, `SourceGroup::Hiligaynon`, `SourceGroup::Bikol`, `SourceGroup::Waray` | the Philippine-language outlets per language (`ph`) |
+| `SourceGroup::Urdu`, `SourceGroup::Pashto`, `SourceGroup::Sindhi` | the Pakistani outlets per language (`pk`) |
+| `SourceGroup::Tagalog`, `SourceGroup::Ilocano`, `SourceGroup::Hiligaynon`, `SourceGroup::Bikol` | the Philippine-language outlets per language (`ph`) |
 | `SourceGroup::Kurmanji`, `SourceGroup::Sorani`, `SourceGroup::Zazaki` | the Kurdish outlets per variety (`kurdish`; a feed that mixes varieties is in its main one) |
 | `SourceGroup::Danish`, `SourceGroup::Norwegian`, `SourceGroup::Swedish` | the Scandinavian outlets per language |
 
@@ -320,7 +320,7 @@ The underlying Guzzle exception stays available via `getPrevious()`; its message
 | `vn` | Vietnam (Vietnamese) |
 | `in-en` | India (English) |
 | `pl` | Poland (Polish) |
-| `pk` | Pakistan (Urdu, Pashto, Sindhi, Saraiki) |
+| `pk` | Pakistan (Urdu, Pashto, Sindhi) |
 | `tr` | Turkey (Turkish) |
 | `tw` | Taiwan (Traditional Chinese) |
 | `pk-en` | Pakistan (English) |
