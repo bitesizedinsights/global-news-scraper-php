@@ -13,7 +13,7 @@ $client = (new Client)->setApifyKey($apiToken);
 
 // The limit applies to each collector run: two collectors with limit 10 return up to 20 articles
 $result = $client->scrape(
-    sources: [Source::NewYorkTimes, Source::Reuters, Source::BbcNews, Source::TheGuardian],
+    sources: [Source::NewYorkTimes, Source::WashingtonPost, Source::BbcNews, Source::TheGuardian],
     limit: 10,
 );
 

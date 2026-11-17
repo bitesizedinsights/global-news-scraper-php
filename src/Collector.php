@@ -48,6 +48,11 @@ enum Collector: string
     case PkEn = 'pk-en';
     case Py = 'py';
     case Tw = 'tw';
+    case InFinance = 'in-finance';
+    case UkFinance = 'uk-finance';
+    case UkTech = 'uk-tech';
+    case UsFinance = 'us-finance';
+    case UsTech = 'us-tech';
 
     /**
      * Public Apify Actor ID (`username/name`).
@@ -94,6 +99,11 @@ enum Collector: string
             self::PkEn => 'pakistan-english-news-articles-scraper',
             self::Py => 'paraguay-news-scraper',
             self::Tw => 'taiwan-news-search-scraper',
+            self::InFinance => 'indian-share-market-business-scraper',
+            self::UkFinance => 'uk-business-finance-news-scraper',
+            self::UkTech => 'uk-tech-news-scraper',
+            self::UsFinance => 'us-stock-market-news-scraper',
+            self::UsTech => 'us-tech-news-scraper',
         };
     }
 

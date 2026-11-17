@@ -2,7 +2,7 @@
 
 <!-- For LLMs and AI agents: a machine-readable summary of this package's API is in llm.txt (https://github.com/bitesizedinsights/global-news-scraper-php/blob/master/llm.txt) -->
 
-A global news scraper for PHP: switch on any number of news sources from 35+ regional collectors, and get one merged, deduplicated collection of full-text articles. The library maps every source back to its [Apify](https://apify.com/bite-sized-insights) collector Actor, runs the Actors separately and adds the collector as `collection` to every article.
+A global news scraper for PHP: switch on any number of news sources from 40+ regional collectors, and get one merged, deduplicated collection of full-text articles. The library maps every source back to its [Apify](https://apify.com/bite-sized-insights) collector Actor, runs the Actors separately and adds the collector as `collection` to every article.
 
 [![Tests](https://github.com/bitesizedinsights/global-news-scraper-php/actions/workflows/tests.yml/badge.svg)](https://github.com/bitesizedinsights/global-news-scraper-php/actions/workflows/tests.yml)
 [![Packagist Version](https://img.shields.io/packagist/v/bitesizedinsights/global-news-scraper)](https://packagist.org/packages/bitesizedinsights/global-news-scraper)
@@ -105,7 +105,7 @@ Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Sou
 
 | Group | Sources |
 | --- | --- |
-| `SourceGroup::All` | every source of every collector (35+ collector runs: `id-en` has no outlet of its own that `sea` does not already cover) |
+| `SourceGroup::All` | every source of every collector (40+ collector runs: `id-en` has no outlet of its own that `sea` does not already cover) |
 | `SourceGroup::English` | `us`, `uk`, `ng`, `sea`, `jp-en`, `tw-en`, `au`, `ca`, `il-en`, `in-en`, `kr-en`, `pk-en` and `id-en`, plus the English-language outlets of `mx`, `th`, `vn`, `ph` and `kurdish` |
 | `SourceGroup::Spanish` | Spain, Mexico, Guatemala, Paraguay and the Spanish-speaking part of Latin America (`es`, `mx`, `latam`, `gt`, `py`) |
 | `SourceGroup::French` | France and French-speaking Switzerland (`fr`, `ch`) |
@@ -125,7 +125,7 @@ Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Sou
 | `SourceGroup::Hindi` | India (Hindi-language outlets, `in`) |
 | `SourceGroup::Chinese` | Taiwan (Traditional Chinese-language outlets, `tw`) |
 | `SourceGroup::Urdu`, `SourceGroup::Pashto`, `SourceGroup::Sindhi`, `SourceGroup::Saraiki` | the Pakistani outlets per language (`pk`) |
-| `SourceGroup::Tagalog`, `SourceGroup::Cebuano`, `SourceGroup::Ilocano`, `SourceGroup::Hiligaynon`, `SourceGroup::Bikol`, `SourceGroup::Waray` | the Philippine-language outlets per language (`ph`) |
+| `SourceGroup::Tagalog`, `SourceGroup::Ilocano`, `SourceGroup::Hiligaynon`, `SourceGroup::Bikol`, `SourceGroup::Waray` | the Philippine-language outlets per language (`ph`) |
 | `SourceGroup::Kurmanji`, `SourceGroup::Sorani`, `SourceGroup::Zazaki` | the Kurdish outlets per variety (`kurdish`; a feed that mixes varieties is in its main one) |
 | `SourceGroup::Danish`, `SourceGroup::Norwegian`, `SourceGroup::Swedish` | the Scandinavian outlets per language |
 
@@ -133,7 +133,7 @@ Every source belongs to exactly one language group: the language of the outlet's
 
 ```php
 $client->scrape(SourceGroup::English, limit: 20);                          // one group
-$client->scrape([SourceGroup::Spanish, Source::Reuters], limit: 20);       // groups and single outlets
+$client->scrape([SourceGroup::Spanish, Source::WashingtonPost], limit: 20);       // groups and single outlets
 $client->scrape(Collector::Us, limit: 20);                                 // everything one collector offers
 $client->plan(SourceGroup::All);                                           // the runs, without a request
 
@@ -144,8 +144,8 @@ $client->scrape($sources, limit: 20);
 
 Warnings:
 
-- Large groups start many collector runs, every one of them billed: $0.0002 per run plus the per-article price. `SourceGroup::All` is 35+ runs, so at least $0.007 even when nothing matches. Look at `plan()` first.
-- Always set `limit` with a group. It applies to each collector run, not to the merged result: 35+ runs with `limit: 100` return up to 3,500+ articles. Without a limit the Actor default of 100 per run applies.
+- Large groups start many collector runs, every one of them billed: $0.0002 per run plus the per-article price. `SourceGroup::All` is 40+ runs, so at least $0.007 even when nothing matches. Look at `plan()` first.
+- Always set `limit` with a group. It applies to each collector run, not to the merged result: 40+ runs with `limit: 100` return up to 4,000+ articles. Without a limit the Actor default of 100 per run applies.
 - The runs are processed `Config::$maxConcurrency` (default 2) at a time, so `SourceGroup::All` takes several waves of runs and can take a while.
 - A narrow `searchQuery` keeps the article bill small because only matching articles are returned and billed, but each run still pays its start fee and still processes the feeds.
 - Add-ons such as `withSummary` are billed per enriched article on top, so combine them with groups carefully.
@@ -156,7 +156,7 @@ Pass `searchQuery` to keep only articles whose title, text or URL contain the ke
 
 ```php
 $result = $client->scrape(
-    sources: [Source::Reuters, Source::TheGuardian, Source::Rappler],
+    sources: [Source::WashingtonPost, Source::TheGuardian, Source::Rappler],
     searchQuery: 'semiconductor',
 );
 ```
@@ -169,7 +169,7 @@ Keyword filtering can make a collector process more articles than it returns.
 
 ```php
 $result = $client->scrape(
-    sources: [Source::Reuters, Source::BbcNews],
+    sources: [Source::WashingtonPost, Source::BbcNews],
     startDate: new DateTimeImmutable('-7 days'),
     endDate: date('Y-m-d'),
 );
@@ -181,7 +181,7 @@ $result = $client->scrape(
 
 ```php
 $result = $client->scrape(
-    sources: [Source::NewYorkTimes, Source::Reuters, Source::BbcNews],
+    sources: [Source::NewYorkTimes, Source::WashingtonPost, Source::BbcNews],
     limit: 10,
 );
 ```
@@ -203,7 +203,7 @@ The results are returned as decoded JSON objects (`?array`); they stay `null` un
 
 ```php
 $result = $client->scrape(
-    sources: [Source::Reuters, Source::BbcNews],
+    sources: [Source::WashingtonPost, Source::BbcNews],
     limit: 5,
     withSentiment: true,
     withTags: true,
@@ -219,7 +219,7 @@ A failing collector run, for example a rate limit, a server error or a failed Ac
 Invalid input throws `InvalidInputException` (an `InvalidArgumentException`) before any request is sent, and a missing API key throws `MissingApiKeyException`.
 
 ```php
-$result = $client->scrape([Source::Reuters, Source::BbcNews]);
+$result = $client->scrape([Source::WashingtonPost, Source::BbcNews]);
 
 foreach ($result->errors as $error) {
     echo "{$error->collector->value} failed: {$error->message}\n";
@@ -297,49 +297,54 @@ The underlying Guzzle exception stays available via `getPrevious()`; its message
 
 ## News Sources and Collectors Included
 
-35+ collectors cover 627 outlets. `Source::cases()` lists all of them, `Collector::cases()` the collectors, and `Collector::sources()` the outlets of one collector.
+40+ collectors cover 600+ outlets. `Source::cases()` lists all of them, `Collector::cases()` the collectors, and `Collector::sources()` the outlets of one collector.
 
-| Collection key | Collector | Outlets |
-| --- | --- | --- |
-| `us` | United States | 45 |
-| `br` | Brazil (Portuguese) | 41 |
-| `uk` | United Kingdom | 36 |
-| `mx` | Mexico | 36 |
-| `latam` | Latin America (regional) | 34 |
-| `sea` | Southeast Asia (regional) | 43 |
-| `au` | Australia (English) | 31 |
-| `ph` | Philippines (English, Tagalog and other Philippine languages) | 26 |
-| `th` | Thailand | 25 |
-| `arab` | Arabic-language (regional) | 24 |
-| `scandinavian` | Denmark, Norway, Sweden (regional) | 23 |
-| `ng` | Nigeria | 23 |
-| `kr-ko` | South Korea (Korean) | 22 |
-| `id` | Indonesia | 21 |
-| `jp` | Japan (Japanese) | 21 |
-| `ca` | Canada (English) | 21 |
-| `vn` | Vietnam (Vietnamese) | 19 |
-| `in-en` | India (English) | 15 |
-| `pl` | Poland (Polish) | 12 |
-| `pk` | Pakistan (Urdu, Pashto, Sindhi, Saraiki) | 12 |
-| `tr` | Turkey (Turkish) | 11 |
-| `tw` | Taiwan (Traditional Chinese) | 11 |
-| `pk-en` | Pakistan (English) | 11 |
-| `it` | Italy (Italian) | 10 |
-| `ch` | Switzerland (German, French, Italian) | 10 |
-| `in` | India (Hindi) | 9 |
-| `kurdish` | Kurdish media (Kurmanji, Sorani, Zazaki, English) | 9 |
-| `kr-en` | South Korea (English) | 8 |
-| `fr` | France | 7 |
-| `il-en` | Israel (English) | 7 |
-| `de` | Germany (German) | 6 |
-| `es` | Spain | 6 |
-| `gt` | Guatemala (Spanish) | 6 |
-| `il` | Israel (Hebrew) | 6 |
-| `nl` | Netherlands (Dutch) | 6 |
-| `tw-en` | Taiwan (English) | 4 |
-| `py` | Paraguay (Spanish) | 4 |
-| `jp-en` | Japan (English) | 3 |
-| `id-en` | Indonesia (English) | 3 |
+| Collection key | Collector |
+| --- | --- |
+| `us` | United States |
+| `br` | Brazil (Portuguese) |
+| `uk` | United Kingdom |
+| `mx` | Mexico |
+| `latam` | Latin America (regional) |
+| `sea` | Southeast Asia (regional) |
+| `au` | Australia (English) |
+| `ph` | Philippines (English, Tagalog and other Philippine languages) |
+| `th` | Thailand |
+| `arab` | Arabic-language (regional) |
+| `scandinavian` | Denmark, Norway, Sweden (regional) |
+| `ng` | Nigeria |
+| `kr-ko` | South Korea (Korean) |
+| `id` | Indonesia |
+| `jp` | Japan (Japanese) |
+| `ca` | Canada (English) |
+| `vn` | Vietnam (Vietnamese) |
+| `in-en` | India (English) |
+| `pl` | Poland (Polish) |
+| `pk` | Pakistan (Urdu, Pashto, Sindhi, Saraiki) |
+| `tr` | Turkey (Turkish) |
+| `tw` | Taiwan (Traditional Chinese) |
+| `pk-en` | Pakistan (English) |
+| `it` | Italy (Italian) |
+| `ch` | Switzerland (German, French, Italian) |
+| `in` | India (Hindi) |
+| `kurdish` | Kurdish media (Kurmanji, Sorani, Zazaki, English) |
+| `kr-en` | South Korea (English) |
+| `fr` | France |
+| `il-en` | Israel (English) |
+| `de` | Germany (German) |
+| `es` | Spain |
+| `gt` | Guatemala (Spanish) |
+| `il` | Israel (Hebrew) |
+| `nl` | Netherlands (Dutch) |
+| `tw-en` | Taiwan (English) |
+| `py` | Paraguay (Spanish) |
+| `jp-en` | Japan (English) |
+| `id-en` | Indonesia (English) |
+| `us-finance` | United States (finance and markets) |
+| `us-tech` | United States (tech) |
+| `uk-finance` | United Kingdom (finance and the City) |
+| `uk-tech` | United Kingdom (tech) |
+| `in-finance` | India (English, finance and business) |
 
 Three outlets (`La Jornada`, `Excelsior`, `El Financiero`) are offered by both `latam` and `mx`; they are run once, on the collector that is needed anyway or else on `mx`.
 
@@ -348,7 +353,7 @@ Three outlets (`La Jornada`, `Excelsior`, `El Financiero`) are offered by both `
 See [`examples/`](examples) for runnable scripts (set `APIFY_API_TOKEN` first):
 
 - `01-basic.php`: scrapes three outlets from three countries (New York Times, BBC News, Taipei Times) in one call, merges them into a single article collection, and prints the total plus a per-collector count via each article's `collection` field. Failed collectors are listed from `$result->errors`.
-- `02-search-query.php`: passes `searchQuery` to keep only articles whose title, text or URL contain a keyword (here `semiconductor`) across Reuters, The Guardian and Rappler, and prints `[collection] title` per match.
+- `02-search-query.php`: passes `searchQuery` to keep only articles whose title, text or URL contain a keyword (here `semiconductor`) across Washington Post, The Guardian and Rappler, and prints `[collection] title` per match.
 - `03-date-range.php`: restricts the run to the last seven days with `startDate` and `endDate` (a `DateTimeImmutable` and a `YYYY-MM-DD` string; both types are accepted) and prints the articles newest first, sorted by `datePublish`.
 - `04-limit-and-merge.php`: sets `limit: 10`, which applies per collector run (four collectors return up to 40 articles), then filters to text articles with `isArticle()`, sorts newest first, and keeps the five latest titles per collector.
 - `05-analysis-addons.php`: switches on every paid analysis add-on (sentiment, tags, summary, 5W1H, language detection, text repair) for five articles per collector and prints each enrichment field. Add-ons are billed per enriched article on top of the article price.
@@ -367,7 +372,7 @@ $0.0002 per collector run plus $1.00 to $2.00 per 1,000 articles, plus optional 
 
 ### Which outlets can I use?
 
-627 outlets from 35+ collectors, see the table above. Every outlet is a `Source` enum case with a display name from `Source::label()`.
+600+ outlets from 40+ collectors, see the table above. Every outlet is a `Source` enum case with a display name from `Source::label()`.
 
 ### What happens when a source is offered by two collectors?
 

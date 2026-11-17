@@ -15,7 +15,7 @@ $apiToken = getenv('APIFY_API_TOKEN') ?: getenv('APIFY_TOKEN') ?: 'your_apify_ap
 $client = (new Client)->setApifyKey($apiToken);
 
 try {
-    $result = $client->scrape([Source::Reuters, Source::BbcNews], limit: 5);
+    $result = $client->scrape([Source::WashingtonPost, Source::BbcNews], limit: 5);
 } catch (InvalidInputException $e) {
     // Empty sources or an invalid option: nothing was sent
     exit("Invalid input: {$e->getMessage()}\n");

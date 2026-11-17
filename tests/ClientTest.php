@@ -29,7 +29,7 @@ test('scrape runs the collector, maps the dataset and sets the collection', func
     $history = [];
     $client = makeClient([US => ['items' => [article('https://a.test/1'), article('https://a.test/2')]]], $history);
 
-    $result = $client->scrape([Source::NewYorkTimes, Source::Reuters]);
+    $result = $client->scrape([Source::NewYorkTimes, Source::WashingtonPost]);
 
     expect($result->isComplete())->toBeTrue()
         ->and($result->entries)->toBeInstanceOf(Collection::class)
@@ -52,12 +52,12 @@ test('only the requested sources are switched on for a collector', function () {
     $history = [];
     $client = makeClient([US => []], $history);
 
-    $client->scrape([Source::NewYorkTimes, Source::Reuters]);
+    $client->scrape([Source::NewYorkTimes, Source::WashingtonPost]);
 
     $body = sentBody($history[0]['request']);
 
     expect(array_keys($body))->toBe(SourceMap::BY_COLLECTOR['us'])
-        ->and(array_keys(array_filter($body)))->toBe(['new_york_times', 'reuters']);
+        ->and(array_keys(array_filter($body)))->toBe(['new_york_times', 'washington_post']);
 });
 
 test('scrape accepts a collection of sources', function () {
@@ -77,7 +77,7 @@ test('collectors run separately and results are merged in plan order (smallest c
         TW => ['items' => [article('https://a.test/tw', ['type' => 'video'])]],
     ], $history);
 
-    $result = $client->scrape([Source::BbcNews, Source::Reuters, Source::TaipeiTimes]);
+    $result = $client->scrape([Source::BbcNews, Source::WashingtonPost, Source::TaipeiTimes]);
 
     expect($result->entries->map(fn ($a) => [$a->collection, $a->url])->all())->toBe([
         ['tw-en', 'https://a.test/tw'],
@@ -98,7 +98,7 @@ test('merged results are deduplicated by URL', function () {
         UK => ['items' => [article('https://a.test/same'), article('https://a.test/uk')]],
     ]);
 
-    $result = $client->scrape([Source::BbcNews, Source::Reuters, Source::NewYorkTimes]);
+    $result = $client->scrape([Source::BbcNews, Source::WashingtonPost, Source::NewYorkTimes]);
 
     expect($result->entries->pluck('url')->all())->toBe([
         'https://a.test/same', 'https://a.test/us', 'https://a.test/uk',
@@ -120,20 +120,20 @@ test('duplicate sources are sent once', function () {
     $history = [];
     $client = makeClient([US => []], $history);
 
-    $client->scrape([Source::Reuters, Source::Reuters]);
+    $client->scrape([Source::WashingtonPost, Source::WashingtonPost]);
 
-    expect(array_keys(array_filter(sentBody($history[0]['request']))))->toBe(['reuters']);
+    expect(array_keys(array_filter(sentBody($history[0]['request']))))->toBe(['washington_post']);
 });
 
 test('plan shows the runs without sending a request', function () {
     $history = [];
     $client = makeClient([], $history);
 
-    $plans = $client->plan([Source::BbcNews, Source::Reuters]);
+    $plans = $client->plan([Source::BbcNews, Source::WashingtonPost]);
 
     expect($plans)->toHaveCount(2)
         ->and($plans[0]->collector)->toBe(Collector::Uk)
-        ->and($plans[1]->sources)->toBe([Source::Reuters])
+        ->and($plans[1]->sources)->toBe([Source::WashingtonPost])
         ->and($history)->toBe([]);
 });
 
@@ -146,8 +146,8 @@ test('invalid sources throw before any request', function (array|Collection $sou
 })->with([
     'empty array' => [[], 'At least one source is required'],
     'empty collection' => [new Collection, 'At least one source is required'],
-    'plain string' => [['reuters'], 'Sources must be Source, SourceGroup or Collector cases'],
-    'mixed' => [[Source::Reuters, 5], 'Sources must be Source, SourceGroup or Collector cases'],
+    'plain string' => [['washington_post'], 'Sources must be Source, SourceGroup or Collector cases'],
+    'mixed' => [[Source::WashingtonPost, 5], 'Sources must be Source, SourceGroup or Collector cases'],
 ]);
 
 test('a failing collector is reported while the others still return articles', function () {
@@ -156,7 +156,7 @@ test('a failing collector is reported while the others still return articles', f
         UK => ['statuses' => ['FAILED']],
     ]);
 
-    $result = $client->scrape([Source::BbcNews, Source::Reuters]);
+    $result = $client->scrape([Source::BbcNews, Source::WashingtonPost]);
 
     expect($result->hasErrors())->toBeTrue()
         ->and($result->entries->pluck('url')->all())->toBe(['https://a.test/us'])
@@ -166,7 +166,7 @@ test('a failing collector is reported while the others still return articles', f
 });
 
 test('collector failures are reported per collector', function (array $actor, string $message) {
-    $result = makeClient([US => $actor])->scrape([Source::Reuters]);
+    $result = makeClient([US => $actor])->scrape([Source::WashingtonPost]);
 
     expect($result->entries)->toBeEmpty()
         ->and($result->errors)->toHaveCount(1)
@@ -188,13 +188,13 @@ test('collector failures are reported per collector', function (array $actor, st
 
 test('rate limit failures keep the retry-after advice in the error message', function () {
     $result = makeClient([US => ['start' => jsonResponse(429, [], ['Retry-After' => '12'])]])
-        ->scrape([Source::Reuters]);
+        ->scrape([Source::WashingtonPost]);
 
     expect($result->errors->first()->message)->toBe('Apify API rate limit reached (retry after 12 seconds)');
 });
 
 test('an empty dataset yields no entries and no error', function () {
-    $result = makeClient([US => ['items' => []]])->scrape([Source::Reuters]);
+    $result = makeClient([US => ['items' => []]])->scrape([Source::WashingtonPost]);
 
     expect($result->entries)->toBeEmpty()->and($result->isComplete())->toBeTrue();
 });
@@ -205,7 +205,7 @@ test('a running collector is polled until it succeeds', function () {
         US => ['statuses' => ['RUNNING', 'RUNNING', 'SUCCEEDED'], 'items' => [article('https://a.test/1')]],
     ], $history);
 
-    $result = $client->scrape([Source::Reuters]);
+    $result = $client->scrape([Source::WashingtonPost]);
 
     expect($result->entries)->toHaveCount(1)->and($history)->toHaveCount(4);
 
@@ -218,7 +218,7 @@ test('a running collector is polled until it succeeds', function () {
 test('a run that does not finish in time is reported', function () {
     $client = makeClient([US => ['statuses' => ['RUNNING']]], config: new Config(timeout: 0));
 
-    $result = $client->scrape([Source::Reuters]);
+    $result = $client->scrape([Source::WashingtonPost]);
 
     expect($result->errors->first()->message)->toContain('did not finish within 0 seconds');
 });
@@ -226,14 +226,14 @@ test('a run that does not finish in time is reported', function () {
 test('a run without an ID cannot be polled', function () {
     $client = makeClient([US => ['start' => jsonResponse(201, ['data' => ['status' => 'RUNNING']])]]);
 
-    expect($client->scrape([Source::Reuters])->errors->first()->message)->toContain('missing run ID');
+    expect($client->scrape([Source::WashingtonPost])->errors->first()->message)->toContain('missing run ID');
 });
 
 test('maxConcurrency 2 starts both runs before reading datasets', function () {
     $history = [];
     $client = makeClient([UK => [], US => []], $history, new Config(maxConcurrency: 2));
 
-    $client->scrape([Source::BbcNews, Source::Reuters]);
+    $client->scrape([Source::BbcNews, Source::WashingtonPost]);
 
     $order = array_map(
         fn ($h) => $h['request']->getMethod(),
@@ -246,7 +246,7 @@ test('maxConcurrency 1 runs the collectors one after another', function () {
     $history = [];
     $client = makeClient([UK => [], US => []], $history, new Config(maxConcurrency: 1));
 
-    $client->scrape([Source::BbcNews, Source::Reuters]);
+    $client->scrape([Source::BbcNews, Source::WashingtonPost]);
 
     $order = array_map(fn ($h) => $h['request']->getMethod(), $history);
     expect($order)->toBe(['POST', 'GET', 'POST', 'GET']);
@@ -258,7 +258,7 @@ test('setApifyKey is fluent and the key is sent as bearer token', function () {
 
     expect($client->setApifyKey('my-key'))->toBe($client);
 
-    $client->scrape([Source::Reuters]);
+    $client->scrape([Source::WashingtonPost]);
 
     expect($history[0]['request']->getHeaderLine('Authorization'))->toBe('Bearer my-key');
 });
@@ -286,7 +286,7 @@ function withEnv(?string $apiToken, ?string $token, callable $callback): void
 test('without setApifyKey the APIFY_TOKEN environment variable is used', function () {
     withEnv(null, 'env-token', function () {
         $history = [];
-        makeClient([US => []], $history, apiKey: null)->scrape([Source::Reuters]);
+        makeClient([US => []], $history, apiKey: null)->scrape([Source::WashingtonPost]);
 
         expect($history[0]['request']->getHeaderLine('Authorization'))->toBe('Bearer env-token');
     });
@@ -295,7 +295,7 @@ test('without setApifyKey the APIFY_TOKEN environment variable is used', functio
 test('APIFY_API_TOKEN wins over APIFY_TOKEN', function () {
     withEnv('primary', 'secondary', function () {
         $history = [];
-        makeClient([US => []], $history, apiKey: null)->scrape([Source::Reuters]);
+        makeClient([US => []], $history, apiKey: null)->scrape([Source::WashingtonPost]);
 
         expect($history[0]['request']->getHeaderLine('Authorization'))->toBe('Bearer primary');
     });
@@ -304,7 +304,7 @@ test('APIFY_API_TOKEN wins over APIFY_TOKEN', function () {
 test('setApifyKey wins over the environment', function () {
     withEnv('primary', 'secondary', function () {
         $history = [];
-        makeClient([US => []], $history, apiKey: 'explicit')->scrape([Source::Reuters]);
+        makeClient([US => []], $history, apiKey: 'explicit')->scrape([Source::WashingtonPost]);
 
         expect($history[0]['request']->getHeaderLine('Authorization'))->toBe('Bearer explicit');
     });
@@ -315,7 +315,7 @@ test('without any key the first call throws before a request is sent', function 
         $history = [];
         $client = makeClient([US => []], $history, apiKey: null);
 
-        expect(fn () => $client->scrape([Source::Reuters]))->toThrow(MissingApiKeyException::class)
+        expect(fn () => $client->scrape([Source::WashingtonPost]))->toThrow(MissingApiKeyException::class)
             ->and($history)->toBe([]);
     });
 });
@@ -324,7 +324,7 @@ test('searchQuery is sent to every collector run', function () {
     $history = [];
     $client = makeClient([UK => [], US => []], $history);
 
-    $client->scrape([Source::BbcNews, Source::Reuters], searchQuery: '  climate  ');
+    $client->scrape([Source::BbcNews, Source::WashingtonPost], searchQuery: '  climate  ');
 
     $posts = array_values(array_filter($history, fn ($h) => $h['request']->getMethod() === 'POST'));
 
@@ -335,7 +335,7 @@ test('searchQuery is sent to every collector run', function () {
 
 test('searchQuery is omitted when not set', function () {
     $history = [];
-    makeClient([US => []], $history)->scrape([Source::Reuters]);
+    makeClient([US => []], $history)->scrape([Source::WashingtonPost]);
 
     expect(sentBody($history[0]['request']))->not->toHaveKey('search_query');
 });
@@ -344,14 +344,14 @@ test('an invalid searchQuery throws before any request', function (string $query
     $history = [];
     $client = makeClient([], $history);
 
-    expect(fn () => $client->scrape([Source::Reuters], searchQuery: $query))
+    expect(fn () => $client->scrape([Source::WashingtonPost], searchQuery: $query))
         ->toThrow(InvalidInputException::class, 'searchQuery must be 1 to 100 characters')
         ->and($history)->toBe([]);
 })->with(['empty' => [''], 'blank' => ['   '], 'too long' => [str_repeat('a', 101)]]);
 
 test('a searchQuery of 100 characters is accepted', function () {
     $history = [];
-    makeClient([US => []], $history)->scrape([Source::Reuters], searchQuery: str_repeat('é', 100));
+    makeClient([US => []], $history)->scrape([Source::WashingtonPost], searchQuery: str_repeat('é', 100));
 
     expect(mb_strlen(sentBody($history[0]['request'])['search_query']))->toBe(100);
 });
@@ -360,7 +360,7 @@ test('startDate and endDate are sent as YYYY-MM-DD', function () {
     $history = [];
     $client = makeClient([US => []], $history);
 
-    $client->scrape([Source::Reuters], startDate: '2026-01-05', endDate: new DateTimeImmutable('2026-02-10 13:45'));
+    $client->scrape([Source::WashingtonPost], startDate: '2026-01-05', endDate: new DateTimeImmutable('2026-02-10 13:45'));
 
     $body = sentBody($history[0]['request']);
     expect($body['start_date'])->toBe('2026-01-05')->and($body['end_date'])->toBe('2026-02-10');
@@ -368,7 +368,7 @@ test('startDate and endDate are sent as YYYY-MM-DD', function () {
 
 test('dates are omitted when not set', function () {
     $history = [];
-    makeClient([US => []], $history)->scrape([Source::Reuters]);
+    makeClient([US => []], $history)->scrape([Source::WashingtonPost]);
 
     expect(sentBody($history[0]['request']))->not->toHaveKey('start_date')->not->toHaveKey('end_date');
 });
@@ -377,7 +377,7 @@ test('invalid dates throw before any request', function (array $dates, string $m
     $history = [];
     $client = makeClient([], $history);
 
-    expect(fn () => $client->scrape([Source::Reuters], ...$dates))
+    expect(fn () => $client->scrape([Source::WashingtonPost], ...$dates))
         ->toThrow(InvalidInputException::class, $message)
         ->and($history)->toBe([]);
 })->with([
@@ -392,9 +392,9 @@ test('startDate in the future and endDate older than 5 years are rejected', func
     $future = (new DateTimeImmutable('+2 days'))->format('Y-m-d');
     $old = (new DateTimeImmutable('-6 years'))->format('Y-m-d');
 
-    expect(fn () => $client->scrape([Source::Reuters], startDate: $future))
+    expect(fn () => $client->scrape([Source::WashingtonPost], startDate: $future))
         ->toThrow(InvalidInputException::class, 'startDate must not be in the future')
-        ->and(fn () => $client->scrape([Source::Reuters], endDate: $old))
+        ->and(fn () => $client->scrape([Source::WashingtonPost], endDate: $old))
         ->toThrow(InvalidInputException::class, 'endDate must not be older than 5 years');
 });
 
@@ -402,7 +402,7 @@ test('today is a valid startDate and endDate', function () {
     $history = [];
     $today = gmdate('Y-m-d');
 
-    makeClient([US => []], $history)->scrape([Source::Reuters], startDate: $today, endDate: $today);
+    makeClient([US => []], $history)->scrape([Source::WashingtonPost], startDate: $today, endDate: $today);
 
     expect(sentBody($history[0]['request'])['start_date'])->toBe($today);
 });
@@ -411,7 +411,7 @@ test('limit is sent to every collector run', function () {
     $history = [];
     $client = makeClient([UK => [], US => []], $history);
 
-    $client->scrape([Source::BbcNews, Source::Reuters], limit: 25);
+    $client->scrape([Source::BbcNews, Source::WashingtonPost], limit: 25);
 
     $posts = array_values(array_filter($history, fn ($h) => $h['request']->getMethod() === 'POST'));
 
@@ -421,14 +421,14 @@ test('limit is sent to every collector run', function () {
 
 test('limit 0 means unlimited and is sent as 0', function () {
     $history = [];
-    makeClient([US => []], $history)->scrape([Source::Reuters], limit: 0);
+    makeClient([US => []], $history)->scrape([Source::WashingtonPost], limit: 0);
 
     expect(sentBody($history[0]['request']))->toHaveKey('limit', 0);
 });
 
 test('limit is omitted by default so the Actor default applies', function () {
     $history = [];
-    makeClient([US => []], $history)->scrape([Source::Reuters]);
+    makeClient([US => []], $history)->scrape([Source::WashingtonPost]);
 
     expect(sentBody($history[0]['request']))->not->toHaveKey('limit');
 });
@@ -437,7 +437,7 @@ test('negative limit throws before any request', function (int $limit) {
     $history = [];
     $client = makeClient([], $history);
 
-    expect(fn () => $client->scrape([Source::Reuters], limit: $limit))
+    expect(fn () => $client->scrape([Source::WashingtonPost], limit: $limit))
         ->toThrow(InvalidInputException::class, 'limit must not be negative')
         ->and($history)->toBe([]);
 })->with([-1, PHP_INT_MIN]);
@@ -446,14 +446,14 @@ test('limit above the Actor maximum of 10000 throws before any request', functio
     $history = [];
     $client = makeClient([], $history);
 
-    expect(fn () => $client->scrape([Source::Reuters], limit: $limit))
+    expect(fn () => $client->scrape([Source::WashingtonPost], limit: $limit))
         ->toThrow(InvalidInputException::class, 'limit must not be greater than 10000')
         ->and($history)->toBe([]);
 })->with([10001, 50000, PHP_INT_MAX]);
 
 test('limit of 10000 is accepted', function () {
     $history = [];
-    makeClient([US => []], $history)->scrape([Source::Reuters], limit: 10000);
+    makeClient([US => []], $history)->scrape([Source::WashingtonPost], limit: 10000);
 
     expect(sentBody($history[0]['request'])['limit'])->toBe(10000);
 });
@@ -462,7 +462,7 @@ test('analysis flags are sent to every collector run when enabled', function (st
     $history = [];
     $client = makeClient([UK => [], US => []], $history);
 
-    $client->scrape([Source::BbcNews, Source::Reuters], ...[$param => true]);
+    $client->scrape([Source::BbcNews, Source::WashingtonPost], ...[$param => true]);
 
     $posts = array_values(array_filter($history, fn ($h) => $h['request']->getMethod() === 'POST'));
 
@@ -479,7 +479,7 @@ test('analysis flags are sent to every collector run when enabled', function (st
 
 test('analysis flags are omitted by default', function () {
     $history = [];
-    makeClient([US => []], $history)->scrape([Source::Reuters]);
+    makeClient([US => []], $history)->scrape([Source::WashingtonPost]);
 
     expect(array_keys(sentBody($history[0]['request'])))->not->toContain(
         'with_sentiment',
@@ -567,7 +567,7 @@ test('a GET is retried after 5xx and connection failures with growing delays', f
         new Response(200, [], json_encode([article('https://a.test/1')], JSON_THROW_ON_ERROR)),
     ], $sleeps);
 
-    $result = $client->scrape([Source::Reuters]);
+    $result = $client->scrape([Source::WashingtonPost]);
 
     expect($result->entries)->toHaveCount(1)
         ->and($sleeps)->toHaveCount(2)
@@ -583,7 +583,7 @@ test('retrying stops after maxRetries', function () {
         new Config(maxRetries: 2),
     );
 
-    $result = $client->scrape([Source::Reuters]);
+    $result = $client->scrape([Source::WashingtonPost]);
 
     expect($result->errors->first()->message)->toContain('HTTP 500')->and($sleeps)->toHaveCount(2);
 });
@@ -597,7 +597,7 @@ test('the run start is retried after 429 and a failed connection', function () {
         new Response(200, [], '[]'),
     ], $sleeps);
 
-    $result = $client->scrape([Source::Reuters]);
+    $result = $client->scrape([Source::WashingtonPost]);
 
     expect($result->isComplete())->toBeTrue()
         ->and($sleeps)->toHaveCount(2)
@@ -606,7 +606,7 @@ test('the run start is retried after 429 and a failed connection', function () {
 
 test('the run start is never retried after 5xx or a timeout', function (Response|Throwable $failure) {
     $sleeps = [];
-    $result = retryClient([$failure, runBody(), new Response(200, [], '[]')], $sleeps)->scrape([Source::Reuters]);
+    $result = retryClient([$failure, runBody(), new Response(200, [], '[]')], $sleeps)->scrape([Source::WashingtonPost]);
 
     expect($result->errors)->toHaveCount(1)->and($sleeps)->toBeEmpty();
 })->with([
@@ -627,7 +627,7 @@ test('on Guzzle 8 the run start is retried after a connect timeout but not after
     $result = retryClient(
         [new $connect('connect timed out', $request), runBody(), new Response(200, [], '[]')],
         $sleeps,
-    )->scrape([Source::Reuters]);
+    )->scrape([Source::WashingtonPost]);
 
     expect($result->isComplete())->toBeTrue()->and($sleeps)->toHaveCount(1);
 
@@ -635,7 +635,7 @@ test('on Guzzle 8 the run start is retried after a connect timeout but not after
     $result = retryClient(
         [new $network('read timed out', $request), runBody(), new Response(200, [], '[]')],
         $sleeps,
-    )->scrape([Source::Reuters]);
+    )->scrape([Source::WashingtonPost]);
 
     expect($result->errors)->toHaveCount(1)->and($sleeps)->toBeEmpty();
 })->skip(
@@ -645,7 +645,7 @@ test('on Guzzle 8 the run start is retried after a connect timeout but not after
 
 test('4xx other than 429 is not retried', function () {
     $sleeps = [];
-    $result = retryClient([new Response(400, [], '{}')], $sleeps)->scrape([Source::Reuters]);
+    $result = retryClient([new Response(400, [], '{}')], $sleeps)->scrape([Source::WashingtonPost]);
 
     expect($result->errors)->toHaveCount(1)->and($sleeps)->toBeEmpty();
 });
@@ -660,7 +660,7 @@ test('Retry-After is read as seconds or as HTTP date and a missing one falls bac
         new Response(429, [], '{}'),
         runBody(),
         new Response(200, [], '[]'),
-    ], $sleeps)->scrape([Source::Reuters]);
+    ], $sleeps)->scrape([Source::WashingtonPost]);
 
     expect($sleeps)->toHaveCount(3)
         ->and($sleeps[0])->toBe(7.0)
@@ -670,14 +670,14 @@ test('Retry-After is read as seconds or as HTTP date and a missing one falls bac
 
 test('a Retry-After above retryMaxDelay is not waited out', function () {
     $sleeps = [];
-    $result = retryClient([new Response(429, ['Retry-After' => '120'], '{}')], $sleeps)->scrape([Source::Reuters]);
+    $result = retryClient([new Response(429, ['Retry-After' => '120'], '{}')], $sleeps)->scrape([Source::WashingtonPost]);
 
     expect($sleeps)->toBeEmpty()->and($result->errors->first()->message)->toContain('retry after 120 seconds');
 });
 
 test('maxRetries 0 turns retrying off', function () {
     $sleeps = [];
-    $result = retryClient([new Response(429, [], '{}')], $sleeps, new Config(maxRetries: 0))->scrape([Source::Reuters]);
+    $result = retryClient([new Response(429, [], '{}')], $sleeps, new Config(maxRetries: 0))->scrape([Source::WashingtonPost]);
 
     expect($sleeps)->toBeEmpty()->and($result->errors)->toHaveCount(1);
 });
@@ -688,7 +688,7 @@ test('the delay is capped at retryMaxDelay', function () {
         [runBody(), new Response(500, [], '{}'), new Response(500, [], '{}'), new Response(200, [], '[]')],
         $sleeps,
         new Config(retryBaseDelay: 10.0, retryMaxDelay: 12.0),
-    )->scrape([Source::Reuters]);
+    )->scrape([Source::WashingtonPost]);
 
     expect($sleeps[0])->toBeBetween(5.0, 10.0)->and($sleeps[1])->toBeBetween(6.0, 12.0);
 });
@@ -709,7 +709,7 @@ test('an expired deadline aborts every pending run once and says so', function (
         new Config(timeout: 0, maxConcurrency: 2),
     );
 
-    $result = $client->scrape([Source::BbcNews, Source::Reuters]);
+    $result = $client->scrape([Source::BbcNews, Source::WashingtonPost]);
 
     $aborts = abortRequests($history);
     $paths = array_map(fn ($h) => $h['request']->getUri()->getPath(), $aborts);
@@ -731,7 +731,7 @@ test('a failing abort still reports the original timeout without claiming an abo
         new Config(timeout: 0),
     );
 
-    $result = $client->scrape([Source::Reuters]);
+    $result = $client->scrape([Source::WashingtonPost]);
 
     expect(abortRequests($history))->toHaveCount(1)
         ->and($result->errors->first()->message)->toBe('Actor run did not finish within 0 seconds');
@@ -741,7 +741,7 @@ test('no abort after success or a failed run', function (string $status) {
     $history = [];
     $client = makeClient([US => ['statuses' => [$status]]], $history, new Config(timeout: 0));
 
-    $client->scrape([Source::Reuters]);
+    $client->scrape([Source::WashingtonPost]);
 
     expect(abortRequests($history))->toBeEmpty();
 })->with(['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT']);
@@ -770,9 +770,9 @@ test('abort throws on API errors', function () {
 })->throws(ApiException::class);
 
 test('collector errors carry the run ID of failed and timed-out runs', function () {
-    $failed = makeClient([US => ['statuses' => ['FAILED']]])->scrape([Source::Reuters]);
+    $failed = makeClient([US => ['statuses' => ['FAILED']]])->scrape([Source::WashingtonPost]);
     $timedOut = makeClient([US => ['statuses' => ['RUNNING']]], config: new Config(timeout: 0))
-        ->scrape([Source::Reuters]);
+        ->scrape([Source::WashingtonPost]);
 
     expect($failed->errors->first()->runId)->toBe('run-'.US)
         ->and($timedOut->errors->first()->runId)->toBe('run-'.US);
@@ -780,7 +780,7 @@ test('collector errors carry the run ID of failed and timed-out runs', function 
 
 test('a failed run adds the Actor statusMessage to the message and exposes it', function (string $status) {
     $result = makeClient([US => ['statuses' => [$status], 'statusMessage' => 'Blocked by the source']])
-        ->scrape([Source::Reuters]);
+        ->scrape([Source::WashingtonPost]);
     $error = $result->errors->first();
 
     expect($error->message)->toBe("Actor run ended with status {$status}: Blocked by the source")
@@ -790,7 +790,7 @@ test('a failed run adds the Actor statusMessage to the message and exposes it', 
 })->with(['FAILED', 'ABORTED', 'TIMED-OUT']);
 
 test('a failed run without a usable statusMessage keeps the plain message', function (array $actor) {
-    $error = makeClient([US => ['statuses' => ['FAILED']] + $actor])->scrape([Source::Reuters])->errors->first();
+    $error = makeClient([US => ['statuses' => ['FAILED']] + $actor])->scrape([Source::WashingtonPost])->errors->first();
 
     expect($error->message)->toBe('Actor run ended with status FAILED')
         ->and($error->statusMessage)->toBeNull()
@@ -806,7 +806,7 @@ test('a failed run without a usable statusMessage keeps the plain message', func
 test('statusMessage is stripped of control characters and capped in the message only', function () {
     $raw = "Line one\nline\ttwo\x00".str_repeat('x', 3000);
     $error = makeClient([US => ['statuses' => ['FAILED'], 'statusMessage' => $raw]])
-        ->scrape([Source::Reuters])->errors->first();
+        ->scrape([Source::WashingtonPost])->errors->first();
     $reason = substr($error->message, strlen('Actor run ended with status FAILED: '));
 
     expect(mb_strlen($reason))->toBe(500)
@@ -821,7 +821,7 @@ test('ApiException carries an optional statusMessage', function () {
 });
 
 test('collector errors have no run ID when no run was started', function () {
-    $result = makeClient([US => ['start' => jsonResponse(429, [])]])->scrape([Source::Reuters]);
+    $result = makeClient([US => ['start' => jsonResponse(429, [])]])->scrape([Source::WashingtonPost]);
 
     expect($result->errors->first()->runId)->toBeNull()
         ->and($result->errors->first()->toArray())->not->toHaveKey('runId');
@@ -839,7 +839,7 @@ test('HTTP 402 on run start, polling and dataset becomes a SpendingLimitExceptio
     $history = [];
 
     try {
-        makeClient([US => $actor], $history)->scrape([Source::Reuters]);
+        makeClient([US => $actor], $history)->scrape([Source::WashingtonPost]);
         $this->fail('SpendingLimitException expected');
     } catch (SpendingLimitException $e) {
         expect($e)->toBeInstanceOf(ApiException::class)
@@ -858,7 +858,7 @@ test('an unparseable 402 body gives a null errorType and the abort call maps 402
     $sleeps = [];
 
     try {
-        retryClient([new Response(402, [], 'not json')], $sleeps)->scrape([Source::Reuters]);
+        retryClient([new Response(402, [], 'not json')], $sleeps)->scrape([Source::WashingtonPost]);
         $this->fail('SpendingLimitException expected');
     } catch (SpendingLimitException $e) {
         expect($e->errorType)->toBeNull()->and($e->getCode())->toBe(402);
@@ -873,7 +873,7 @@ test('a 402 is never retried and the SpendingLimitException message is capped at
     $long = jsonResponse(402, ['error' => ['type' => 'x', 'message' => str_repeat('y', 900)]]);
 
     try {
-        retryClient([$long, runBody(), new Response(200, [], '[]')], $sleeps)->scrape([Source::Reuters]);
+        retryClient([$long, runBody(), new Response(200, [], '[]')], $sleeps)->scrape([Source::WashingtonPost]);
         $this->fail('SpendingLimitException expected');
     } catch (SpendingLimitException $e) {
         expect(mb_strlen($e->getMessage()))->toBeLessThan(560)->and($sleeps)->toBeEmpty();
@@ -887,7 +887,7 @@ test('scrape returns partial results when a 402 hits one collector and others su
         US => ['start' => limitResponse()],
     ], $history, new Config(maxRetries: 0, maxConcurrency: 1));
 
-    $result = $client->scrape([Source::BbcNews, Source::Reuters, Source::TaipeiTimes]);
+    $result = $client->scrape([Source::BbcNews, Source::WashingtonPost, Source::TaipeiTimes]);
 
     expect($result->entries->pluck('url')->all())->toBe(['https://a.test/tw'])
         ->and($result->errors->pluck('collector')->all())->toContain(Collector::Us)
@@ -902,7 +902,7 @@ test('after a 402 no further collector run is started and the skipped ones are r
         UK => ['start' => limitResponse()],
     ], $history, new Config(maxRetries: 0, maxConcurrency: 1));
 
-    $result = $client->scrape([Source::BbcNews, Source::Reuters, Source::TaipeiTimes]);
+    $result = $client->scrape([Source::BbcNews, Source::WashingtonPost, Source::TaipeiTimes]);
 
     expect(runStartQueries($history))->toHaveCount(2)
         ->and($result->errors)->toHaveCount(2)
@@ -916,7 +916,7 @@ test('scrape throws SpendingLimitException when every collector hit the limit', 
         US => ['start' => limitResponse()],
     ], $history);
 
-    expect(fn () => $client->scrape([Source::Reuters, Source::TaipeiTimes]))
+    expect(fn () => $client->scrape([Source::WashingtonPost, Source::TaipeiTimes]))
         ->toThrow(SpendingLimitException::class);
 });
 
@@ -1009,7 +1009,7 @@ test('every concurrent collector run carries the run timeout', function () {
         new Config(timeout: 700, maxRetries: 0, maxConcurrency: 3),
     );
 
-    $client->scrape([Source::BbcNews, Source::Reuters, Source::TaipeiTimes], runTimeout: 120);
+    $client->scrape([Source::BbcNews, Source::WashingtonPost, Source::TaipeiTimes], runTimeout: 120);
 
     expect(runStartQueries($history))->toBe(['timeout=120', 'timeout=120', 'timeout=120']);
 });

@@ -113,11 +113,11 @@ test('article fromArray prefers the explicit collection argument', function () {
 
 test('collector error and run plan round trip', function () {
     $error = new CollectorError(Collector::Us, 'Rate limited');
-    $plan = new RunPlan(Collector::Uk, [Source::Reuters, Source::BbcNews]);
+    $plan = new RunPlan(Collector::Uk, [Source::WashingtonPost, Source::BbcNews]);
 
     expect(CollectorError::fromArray(json_decode(json_encode($error), true)))->toEqual($error)
         ->and(RunPlan::fromArray(json_decode(json_encode($plan), true)))->toEqual($plan)
-        ->and($plan->toArray())->toBe(['collector' => 'uk', 'sources' => ['reuters', 'bbc_news']]);
+        ->and($plan->toArray())->toBe(['collector' => 'uk', 'sources' => ['washington_post', 'bbc_news']]);
 });
 
 test('scrape result round trips', function () {

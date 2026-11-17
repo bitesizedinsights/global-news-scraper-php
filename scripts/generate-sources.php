@@ -45,7 +45,13 @@ foreach (Collector::cases() as $collector) {
 }
 
 $caseName = static function (string $key): string {
-    $name = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', $key)));
+    // PHP case names cannot start with a digit: spell the leading number out (5paisa -> FivePaisa)
+    $key_ = preg_replace_callback(
+        '/^(\d+)/',
+        static fn (array $m): string => [5 => 'Five', 9 => 'Nine'][(int) $m[1]] ?? $m[1],
+        $key
+    );
+    $name = str_replace(' ', '', ucwords(str_replace(['_', '-'], ' ', $key_)));
 
     if (! preg_match('/^[A-Za-z]/', $name)) {
         throw new RuntimeException("Source key '{$key}' does not map to a valid case name");

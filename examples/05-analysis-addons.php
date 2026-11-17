@@ -13,7 +13,7 @@ $client = (new Client)->setApifyKey($apiToken);
 
 // Add-ons are billed per enriched article on top of the article price (see the pricing section of the README)
 $result = $client->scrape(
-    sources: [Source::Reuters, Source::BbcNews],
+    sources: [Source::WashingtonPost, Source::BbcNews],
     limit: 5,
     withSentiment: true,
     withTags: true,

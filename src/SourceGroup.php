@@ -44,8 +44,6 @@ enum SourceGroup: string
     case Saraiki = 'skr';
     /** Filipino/Tagalog. */
     case Tagalog = 'tl';
-    /** Cebuano: ISO 639-3 code, it has no ISO 639-1 code. */
-    case Cebuano = 'ceb';
     /** Ilocano: ISO 639-3 code, it has no ISO 639-1 code. */
     case Ilocano = 'ilo';
     /** Hiligaynon (Ilonggo): ISO 639-3 code, it has no ISO 639-1 code. */

@@ -22,14 +22,14 @@ function planSummary(array $sources): array
 }
 
 test('sources of one collector need a single run', function () {
-    expect(planSummary([Source::NewYorkTimes, Source::Reuters]))->toBe(['us' => ['new_york_times', 'reuters']]);
+    expect(planSummary([Source::NewYorkTimes, Source::WashingtonPost]))->toBe(['us' => ['new_york_times', 'washington_post']]);
 });
 
 test('sources are split over their collectors', function () {
-    expect(planSummary([Source::BbcNews, Source::Reuters, Source::TaipeiTimes]))->toBe([
+    expect(planSummary([Source::BbcNews, Source::WashingtonPost, Source::TaipeiTimes]))->toBe([
         'tw-en' => ['taipei_times'],
         'uk' => ['bbc_news'],
-        'us' => ['reuters'],
+        'us' => ['washington_post'],
     ]);
 });
 

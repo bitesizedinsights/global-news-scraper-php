@@ -13,7 +13,7 @@ $client = (new Client)->setApifyKey($apiToken);
 
 // Articles of the last week; strings (YYYY-MM-DD) and DateTimeInterface objects both work
 $result = $client->scrape(
-    sources: [Source::Reuters, Source::BbcNews],
+    sources: [Source::WashingtonPost, Source::BbcNews],
     startDate: new DateTimeImmutable('-7 days'),
     endDate: date('Y-m-d'),
 );

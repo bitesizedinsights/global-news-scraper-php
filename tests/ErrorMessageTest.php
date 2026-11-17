@@ -124,7 +124,7 @@ test('rate limit and spending limit messages stay meaningful and clean', functio
 test('retry exhaustion and malformed responses stay clean', function () {
     $bad = '{"error":{"type":"x","message":"see https://a.test/?token=secret"}}';
     $e = abortError([new Response(500, [], $bad), new Response(500, [], $bad)], new Config(maxRetries: 1));
-    $malformed = errClient([new Response(200, [], 'not json ?token=secret')])->scrape([Source::Reuters]);
+    $malformed = errClient([new Response(200, [], 'not json ?token=secret')])->scrape([Source::WashingtonPost]);
 
     expect($e->getMessage())->toStartWith('Apify API request failed (HTTP 500): x: see ');
     expect($malformed->errors->first()->message)->toBe('Invalid API response: malformed JSON');
@@ -132,12 +132,12 @@ test('retry exhaustion and malformed responses stay clean', function () {
 
 test('collector errors stay readable and carry no URL', function () {
     $body = json_encode(['error' => ['type' => 'internal-error', 'message' => 'Try again later']]);
-    $result = errClient([new Response(503, [], $body)])->scrape([Source::Reuters]);
+    $result = errClient([new Response(503, [], $body)])->scrape([Source::WashingtonPost]);
 
     expect($result->errors->first()->message)->toBe('Apify API request failed (HTTP 503): internal-error: Try again later');
 
     $result = errClient([new ConnectException('down https://x?token=secret', new Request('POST', '/'))])
-        ->scrape([Source::Reuters]);
+        ->scrape([Source::WashingtonPost]);
 
     expect($result->errors->first()->message)->toBe('Apify API request failed: connection error (ConnectException)');
 });

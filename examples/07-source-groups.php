@@ -18,7 +18,7 @@ $client = (new Client)->setApifyKey($apiToken);
 $sources = [
     SourceGroup::Spanish,       // every Spanish-language outlet (Spain, Latin America, Mexico)
     SourceGroup::Portuguese,    // the Brazilian outlets
-    Source::Reuters,            // one English-language outlet on top
+    Source::WashingtonPost,            // one English-language outlet on top
     Collector::Uk,              // everything the UK collector offers
 ];
 

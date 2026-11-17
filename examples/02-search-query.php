@@ -13,7 +13,7 @@ $client = (new Client)->setApifyKey($apiToken);
 
 // Only articles whose title, text or URL contain the keyword
 $result = $client->scrape(
-    sources: [Source::Reuters, Source::TheGuardian, Source::Rappler],
+    sources: [Source::WashingtonPost, Source::TheGuardian, Source::Rappler],
     searchQuery: 'semiconductor',
 );
 

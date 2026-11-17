@@ -41,7 +41,7 @@ test('All contains every source', function () {
 });
 
 test('languages are assigned as documented', function () {
-    expect(Source::Reuters->language())->toBe(SourceGroup::English)
+    expect(Source::WashingtonPost->language())->toBe(SourceGroup::English)
         ->and(Source::Rappler->language())->toBe(SourceGroup::English)
         ->and(Source::MexicoNewsDaily->language())->toBe(SourceGroup::English)
         ->and(Source::LaJornada->language())->toBe(SourceGroup::Spanish)
@@ -54,17 +54,14 @@ test('languages are assigned as documented', function () {
         ->and(Source::Nrk->language())->toBe(SourceGroup::Norwegian)
         ->and(Source::Svt->language())->toBe(SourceGroup::Swedish)
         ->and(Source::Matichon->language())->toBe(SourceGroup::Thai)
-        ->and(Source::BangkokPost->language())->toBe(SourceGroup::English)
         ->and(Source::ChosunIlbo->language())->toBe(SourceGroup::Korean)
         ->and(Source::AsahiShimbun->language())->toBe(SourceGroup::Japanese)
         ->and(Source::TuoiTre->language())->toBe(SourceGroup::Vietnamese)
-        ->and(Source::HueNgayNayEn->language())->toBe(SourceGroup::English)
         ->and(Source::Onet->language())->toBe(SourceGroup::Polish)
         ->and(Source::Sabah->language())->toBe(SourceGroup::Turkish)
         ->and(Source::IlGiornale->language())->toBe(SourceGroup::Italian)
         ->and(Source::Bild->language())->toBe(SourceGroup::German)
         ->and(Source::Veja->language())->toBe(SourceGroup::Portuguese)
-        ->and(Source::LaHora->language())->toBe(SourceGroup::Spanish)
         ->and(Source::UltimaHora->language())->toBe(SourceGroup::Spanish)
         ->and(Source::CbcNews->language())->toBe(SourceGroup::English)
         ->and(Source::Dawn->language())->toBe(SourceGroup::English)
@@ -79,8 +76,6 @@ test('languages are assigned as documented', function () {
         ->and(Source::AppPashto->language())->toBe(SourceGroup::Pashto)
         ->and(Source::AppSindhi->language())->toBe(SourceGroup::Sindhi)
         ->and(Source::AppSaraiki->language())->toBe(SourceGroup::Saraiki)
-        ->and(Source::PilipinoStarNgayon->language())->toBe(SourceGroup::Tagalog)
-        ->and(Source::Banat->language())->toBe(SourceGroup::Cebuano)
         ->and(Source::BosesTiAmianan->language())->toBe(SourceGroup::Ilocano)
         ->and(Source::BomboRadyoIloilo->language())->toBe(SourceGroup::Hiligaynon)
         ->and(Source::BomboRadyoLegazpi->language())->toBe(SourceGroup::Bikol)
@@ -116,7 +111,6 @@ test('a group plans the collectors that offer its sources', function () {
         ->and($collectors(SourceGroup::Sindhi))->toBe(['pk'])
         ->and($collectors(SourceGroup::Saraiki))->toBe(['pk'])
         ->and($collectors(SourceGroup::Tagalog))->toBe(['ph'])
-        ->and($collectors(SourceGroup::Cebuano))->toBe(['ph'])
         ->and($collectors(SourceGroup::Ilocano))->toBe(['ph'])
         ->and($collectors(SourceGroup::Hiligaynon))->toBe(['ph'])
         ->and($collectors(SourceGroup::Bikol))->toBe(['ph'])
@@ -146,7 +140,7 @@ test('a single enum case is accepted without an array', function () {
 });
 
 test('sources, groups and collectors can be mixed and are deduplicated', function () {
-    $plans = (new Client)->plan(collect([Source::Reuters, Collector::Us, SourceGroup::Danish, Source::Politiken]));
+    $plans = (new Client)->plan(collect([Source::WashingtonPost, Collector::Us, SourceGroup::Danish, Source::Politiken]));
     $byCollector = [];
 
     foreach ($plans as $plan) {
