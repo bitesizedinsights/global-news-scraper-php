@@ -18,6 +18,8 @@ use Psr\Http\Message\RequestInterface;
  * - `abort`: a Response that replaces the default answer of the abort call
  * - `statusMessage`: any value, set as `statusMessage` on every run answer (omitted by default)
  * - `datasetId`: null omits `defaultDatasetId` from the run
+ *
+ * Every run carries the `actId` `act-{slug}`, which `GET /v2/acts/act-{slug}` resolves to the Actor.
  */
 final class FakeApify
 {
@@ -40,6 +42,12 @@ final class FakeApify
             $abort = $this->actors[$m[1]]['abort'] ?? null;
 
             return Create::promiseFor($abort instanceof Response ? $abort : $this->run($m[1], 'ABORTING'));
+        }
+
+        if (preg_match('#^/v2/acts/act-([^/~]+)~([^/]+)$#', $path, $m) === 1) {
+            $actor = ['username' => $m[1], 'name' => $m[2]];
+
+            return Create::promiseFor(new Response(200, [], json_encode(['data' => $actor], JSON_THROW_ON_ERROR)));
         }
 
         if (preg_match('#^/v2/actor-runs/run-(.+)$#', $path, $m) === 1) {
@@ -74,6 +82,9 @@ final class FakeApify
             return $config['poll'];
         }
 
+        // A run can be polled without a start call, as from another process
+        $this->polls[$actor] ??= $config['statuses'] ?? ['SUCCEEDED'];
+
         return $this->run($actor, array_shift($this->polls[$actor]) ?? 'SUCCEEDED');
     }
 
@@ -90,7 +101,7 @@ final class FakeApify
 
     private function run(string $actor, string $status): Response
     {
-        $data = ['id' => "run-{$actor}", 'status' => $status];
+        $data = ['id' => "run-{$actor}", 'actId' => "act-{$actor}", 'status' => $status];
 
         if (array_key_exists('statusMessage', $this->actors[$actor] ?? [])) {
             $data['statusMessage'] = $this->actors[$actor]['statusMessage'];

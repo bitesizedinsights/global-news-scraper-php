@@ -11,6 +11,8 @@ use DateTimeInterface;
 use DateTimeZone;
 use GlobalNewsScraper\DTO\Article;
 use GlobalNewsScraper\DTO\CollectorError;
+use GlobalNewsScraper\DTO\Run;
+use GlobalNewsScraper\DTO\RunBatch;
 use GlobalNewsScraper\DTO\RunPlan;
 use GlobalNewsScraper\DTO\ScrapeResult;
 use GlobalNewsScraper\Exception\ApiException;
@@ -20,6 +22,7 @@ use GlobalNewsScraper\Exception\RateLimitException;
 use GlobalNewsScraper\Exception\SpendingLimitException;
 use GlobalNewsScraper\Support\ErrorText;
 use GlobalNewsScraper\Support\Planner;
+use GlobalNewsScraper\Support\RunId;
 use GlobalNewsScraper\Support\SpendingLimitError;
 use GlobalNewsScraper\Support\UrlKey;
 use GuzzleHttp\Client as HttpClient;
@@ -61,6 +64,9 @@ final class Client
     private readonly ClientInterface $http;
 
     private ?string $apiKey = null;
+
+    /** @var array<string, Collector> Collectors by Apify's internal Actor ID, filled by run lookups. */
+    private array $collectorsByActId = [];
 
     /** @var Closure(float): void */
     private readonly Closure $sleeper;
@@ -138,6 +144,142 @@ final class Client
         bool $withFixText = false,
         ?int $runTimeout = null,
     ): ScrapeResult {
+        [$plans, $options] = $this->prepare(
+            $sources,
+            $searchQuery,
+            $startDate,
+            $endDate,
+            $limit,
+            $withSentiment,
+            $withTags,
+            $withSummary,
+            $with5w1h,
+            $withLanguageDetection,
+            $withFixText,
+            $runTimeout,
+        );
+
+        return $this->execute($plans, $options, $runTimeout);
+    }
+
+    /**
+     * Start the collector runs `scrape()` would start and return their handles without waiting; the runs keep going
+     * on Apify and are billed. Takes the arguments of `scrape()`. Keep the returned batch (`toArray()`).
+     *
+     * `Config::$maxConcurrency` limits how many start requests are sent at the same time, not how many runs execute:
+     * every started run executes at once. For big selections, start the sources of `plan()` in portions.
+     *
+     * A failed start does not throw: it is reported in `RunBatch::$errors` and the handles of the other runs are
+     * returned. The library never repeats a start that may have reached Apify; after a server error or a timeout the
+     * run may exist, so check Apify Console before starting that collector again.
+     *
+     * @param  array<mixed>|Collection<array-key, mixed>|Source|SourceGroup|Collector  $sources  As for `scrape()`.
+     * @param  int|null  $runTimeout  As for `scrape()`; by default Apify stops each run after `Config::$timeout`.
+     *
+     * @throws InvalidInputException
+     * @throws MissingApiKeyException
+     * @throws SpendingLimitException only when the limit was reached and not a single run was started
+     */
+    public function start(
+        array|Collection|Source|SourceGroup|Collector $sources,
+        ?string $searchQuery = null,
+        DateTimeInterface|string|null $startDate = null,
+        DateTimeInterface|string|null $endDate = null,
+        ?int $limit = null,
+        bool $withSentiment = false,
+        bool $withTags = false,
+        bool $withSummary = false,
+        bool $with5w1h = false,
+        bool $withLanguageDetection = false,
+        bool $withFixText = false,
+        ?int $runTimeout = null,
+    ): RunBatch {
+        [$plans, $options] = $this->prepare(
+            $sources,
+            $searchQuery,
+            $startDate,
+            $endDate,
+            $limit,
+            $withSentiment,
+            $withTags,
+            $withSummary,
+            $with5w1h,
+            $withLanguageDetection,
+            $withFixText,
+            $runTimeout,
+        );
+
+        [$outcomes, $spendingLimit] = $this->runPlans(
+            $plans,
+            fn (RunPlan $plan): PromiseInterface => $this->startCollector(
+                $plan,
+                $this->buildInput($plan, $options),
+                $runTimeout,
+            ),
+        );
+
+        $runs = [];
+        $errors = [];
+
+        foreach ($outcomes as $outcome) {
+            if ($outcome instanceof Run) {
+                $runs[] = $outcome;
+            } elseif ($outcome instanceof CollectorError) {
+                $errors[] = $outcome;
+            }
+        }
+
+        // With a single run started the batch must be returned, or its ID would be lost
+        if ($spendingLimit !== null && $runs === []) {
+            throw $spendingLimit;
+        }
+
+        return new RunBatch(new Collection($runs), new Collection($errors));
+    }
+
+    /**
+     * Look a run up once, without waiting for it. With a `Run` handle this is one request. With a bare run ID the
+     * collector is identified through the run's Actor (a second request), and runs of any other Actor are refused.
+     *
+     * @throws InvalidInputException when the run ID has characters no Apify ID has
+     * @throws ApiException when the run cannot be read (HTTP 404 = unknown ID) or is not a collector run
+     * @throws RateLimitException
+     * @throws SpendingLimitException
+     * @throws MissingApiKeyException
+     */
+    public function getRun(Run|string $run): Run
+    {
+        $runId = $this->checkedRunId($run);
+        $this->resolveApiKey();
+        $deadline = microtime(true) + $this->config->timeout;
+
+        /** @var Run */
+        return $this->lookup($runId, $run instanceof Run ? $run->collector : null, $deadline)->wait();
+    }
+
+    /**
+     * Validated options of `scrape()` and `start()`: the planned runs and the Actor input shared by them.
+     *
+     * @param  array<mixed>|Collection<array-key, mixed>|Source|SourceGroup|Collector  $sources
+     * @return array{0: list<RunPlan>, 1: array<string, mixed>}
+     *
+     * @throws InvalidInputException
+     * @throws MissingApiKeyException
+     */
+    private function prepare(
+        array|Collection|Source|SourceGroup|Collector $sources,
+        ?string $searchQuery,
+        DateTimeInterface|string|null $startDate,
+        DateTimeInterface|string|null $endDate,
+        ?int $limit,
+        bool $withSentiment,
+        bool $withTags,
+        bool $withSummary,
+        bool $with5w1h,
+        bool $withLanguageDetection,
+        bool $withFixText,
+        ?int $runTimeout,
+    ): array {
         $plans = $this->plan($sources);
 
         if ($runTimeout !== null && $runTimeout < 0) {
@@ -203,7 +345,7 @@ final class Client
 
         $this->resolveApiKey();
 
-        return $this->execute($plans, $options, $runTimeout);
+        return [$plans, $options];
     }
 
     private function searchQuery(string $query): string
@@ -277,15 +419,48 @@ final class Client
      */
     private function execute(array $plans, array $options, ?int $runTimeout): ScrapeResult
     {
+        [$outcomes, $spendingLimit] = $this->runPlans(
+            $plans,
+            fn (RunPlan $plan): PromiseInterface => $this->runCollector(
+                $plan,
+                $this->buildInput($plan, $options),
+                $runTimeout,
+            ),
+        );
+
+        $articles = [];
+        $errors = [];
+
+        foreach ($outcomes as $outcome) {
+            if ($outcome instanceof CollectorError) {
+                $errors[] = $outcome;
+            } elseif (is_array($outcome)) {
+                /** @var list<Article> $outcome */
+                array_push($articles, ...$outcome);
+            }
+        }
+
+        return $this->merge($articles, $errors, $spendingLimit);
+    }
+
+    /**
+     * Runs one task per planned collector, up to `Config::$maxConcurrency` at a time. After the first spending limit
+     * no further task is started: the account limit applies to every collector.
+     *
+     * @param  list<RunPlan>  $plans
+     * @param  Closure(RunPlan): PromiseInterface  $task  Resolves to the outcome or to a `SpendingLimitError`.
+     * @return array{0: array<int, mixed>, 1: ?SpendingLimitException} Outcomes in plan order.
+     */
+    private function runPlans(array $plans, Closure $task): array
+    {
         $outcomes = [];
         /** @var ArrayObject<string, SpendingLimitException> $limit */
         $limit = new ArrayObject;
         $skipped = [];
 
-        $runs = (function () use ($plans, $options, $runTimeout, $limit, &$skipped) {
+        $tasks = (static function () use ($plans, $task, $limit, &$skipped) {
             foreach ($plans as $index => $plan) {
                 if (isset($limit['e'])) {
-                    // The account limit applies to every collector: do not start further runs
                     $skipped[$index] = new CollectorError(
                         $plan->collector,
                         'Not started: '.$limit['e']->getMessage(),
@@ -294,12 +469,12 @@ final class Client
                     continue;
                 }
 
-                yield $index => $this->runCollector($plan, $this->buildInput($plan, $options), $runTimeout);
+                yield $index => $task($plan);
             }
         })();
 
         Each::ofLimit(
-            $runs,
+            $tasks,
             max(1, $this->config->maxConcurrency),
             static function (mixed $outcome, mixed $index) use (&$outcomes, $limit): void {
                 if ($outcome instanceof SpendingLimitError) {
@@ -314,22 +489,21 @@ final class Client
         $outcomes += $skipped;
         ksort($outcomes);
 
-        $articles = [];
-        $errors = [];
+        return [$outcomes, $limit['e'] ?? null];
+    }
 
-        foreach ($outcomes as $outcome) {
-            if ($outcome instanceof CollectorError) {
-                $errors[] = $outcome;
-
-                continue;
-            }
-
-            array_push($articles, ...$outcome);
-        }
-
-        // Partial results are returned; only when the limit stopped every collector without a single article it throws
-        if (isset($limit['e']) && $articles === []) {
-            throw $limit['e'];
+    /**
+     * Partial results are returned; only when a spending limit left not a single article it is thrown.
+     *
+     * @param  list<Article>  $articles  In plan order: of duplicates the first one is kept.
+     * @param  list<CollectorError>  $errors
+     *
+     * @throws SpendingLimitException
+     */
+    private function merge(array $articles, array $errors, ?SpendingLimitException $spendingLimit): ScrapeResult
+    {
+        if ($spendingLimit !== null && $articles === []) {
+            throw $spendingLimit;
         }
 
         return new ScrapeResult(
@@ -371,17 +545,7 @@ final class Client
             try {
                 // One deadline for the whole collector run: start, polling and every retry
                 $deadline = microtime(true) + $this->config->timeout;
-                $actor = str_replace('/', '~', $plan->collector->actorId());
-                $start = ['json' => $input];
-                $limit = $runTimeout ?? $this->config->runTimeout ?? $this->config->timeout;
-
-                // Apify's own time limit of the run; only the run start carries it. 0 keeps the Actor default.
-                if ($limit > 0) {
-                    $start['query'] = ['timeout' => $limit];
-                }
-
-                $start['deadline'] = $deadline;
-                $run = $this->runData(yield $this->request('POST', "/acts/{$actor}/runs", $start));
+                $run = $this->runData(yield $this->requestStart($plan, $input, $runTimeout, $deadline));
                 $knownRunId = is_string($run['id'] ?? null) ? $run['id'] : null;
 
                 while (true) {
@@ -456,29 +620,185 @@ final class Client
                 // A coroutine resolves with its final yielded value, not with a return value
                 yield Create::promiseFor($this->articles($plan->collector, $items));
             } catch (ApiException $e) {
-                $error = new CollectorError(
-                    $plan->collector,
-                    $e->getMessage(),
-                    $e->runId ?? $knownRunId,
-                    $e->statusMessage,
-                );
-
-                yield Create::promiseFor($e instanceof SpendingLimitException ? new SpendingLimitError($error, $e) : $error);
+                yield Create::promiseFor($this->collectorFailure($plan->collector, $e, $knownRunId));
             }
         });
     }
 
     /**
+     * The only place that starts a run.
+     *
+     * @param  array<string, mixed>  $input
+     * @param  int|null  $runTimeout  Per-call override of the run's Apify time limit (null = config, 0 = none).
+     * @return PromiseInterface Resolves to the decoded JSON body.
+     */
+    private function requestStart(RunPlan $plan, array $input, ?int $runTimeout, float $deadline): PromiseInterface
+    {
+        $actor = str_replace('/', '~', $plan->collector->actorId());
+        $options = ['json' => $input, 'deadline' => $deadline];
+        $limit = $runTimeout ?? $this->config->runTimeout ?? $this->config->timeout;
+
+        // Apify's own time limit of the run; only the run start carries it. 0 keeps the Actor default.
+        if ($limit > 0) {
+            $options['query'] = ['timeout' => $limit];
+        }
+
+        return $this->request('POST', "/acts/{$actor}/runs", $options);
+    }
+
+    /**
+     * Start the run only. Never rejects: a rejected task would lose the handles of the runs started beside it.
+     *
+     * @param  array<string, mixed>  $input
+     * @return PromiseInterface Resolves to a `Run`, a `CollectorError` or a `SpendingLimitError`.
+     */
+    private function startCollector(RunPlan $plan, array $input, ?int $runTimeout): PromiseInterface
+    {
+        return Coroutine::of(function () use ($plan, $input, $runTimeout) {
+            try {
+                $deadline = microtime(true) + $this->config->timeout;
+                $data = $this->runData(yield $this->requestStart($plan, $input, $runTimeout, $deadline));
+                $runId = $data['id'] ?? null;
+
+                if (! is_string($runId) || ! RunId::isValid($runId)) {
+                    // An unusable ID is still reported: it is the only trace of a run that may be billed
+                    $reported = is_string($runId) && $runId !== '' ? ErrorText::clean($runId) : null;
+
+                    throw new ApiException('Invalid API response: missing or invalid run ID', 0, null, $reported);
+                }
+
+                yield Create::promiseFor($this->handle($plan->collector, $runId, $data));
+            } catch (ApiException $e) {
+                yield Create::promiseFor($this->collectorFailure($plan->collector, $e));
+            } catch (Throwable $e) {
+                yield Create::promiseFor(new CollectorError($plan->collector, ErrorText::transport($e)));
+            }
+        });
+    }
+
+    private function collectorFailure(
+        Collector $collector,
+        ApiException $e,
+        ?string $knownRunId = null,
+    ): CollectorError|SpendingLimitError {
+        $error = new CollectorError($collector, $e->getMessage(), $e->runId ?? $knownRunId, $e->statusMessage);
+
+        return $e instanceof SpendingLimitException ? new SpendingLimitError($error, $e) : $error;
+    }
+
+    /**
+     * @param  array<mixed>  $data  Run object of the Apify API.
+     */
+    private function handle(Collector $collector, string $runId, array $data): Run
+    {
+        $string = static fn (string $key): ?string => is_string($data[$key] ?? null) ? $data[$key] : null;
+        $status = $string('status');
+        $statusMessage = $string('statusMessage');
+
+        return new Run(
+            $collector,
+            $runId,
+            $status === null ? null : RunStatus::tryFrom($status),
+            $string('defaultDatasetId'),
+            $string('startedAt'),
+            $string('finishedAt'),
+            $statusMessage === null || $statusMessage === '' ? null : mb_substr($statusMessage, 0, 2000),
+        );
+    }
+
+    /**
+     * @throws InvalidInputException
+     */
+    private function checkedRunId(Run|string $run): string
+    {
+        $runId = $run instanceof Run ? $run->id : $run;
+
+        if (! RunId::isValid($runId)) {
+            throw new InvalidInputException('Invalid run ID: expected 1 to 64 characters of A-Z, a-z, 0-9, _, ~ or -');
+        }
+
+        return $runId;
+    }
+
+    /**
+     * One status request. A null collector (bare run ID) is identified through the run's Actor.
+     *
+     * @return PromiseInterface Resolves to a `Run`; rejects with an `ApiException`.
+     */
+    private function lookup(string $runId, ?Collector $collector, float $deadline): PromiseInterface
+    {
+        return Coroutine::of(function () use ($runId, $collector, $deadline) {
+            $data = $this->runData(yield $this->request('GET', '/actor-runs/'.rawurlencode($runId), [
+                'deadline' => $deadline,
+                'run_id' => $runId,
+            ]));
+            $status = $data['status'] ?? null;
+
+            if (! is_string($status) || RunStatus::tryFrom($status) === null) {
+                throw new ApiException('Invalid API response: missing or unknown run status', 0, null, $runId);
+            }
+
+            if ($collector === null) {
+                $actId = $data['actId'] ?? null;
+
+                if (! is_string($actId) || ! RunId::isValid($actId)) {
+                    throw new ApiException('Invalid API response: missing or invalid Actor ID', 0, null, $runId);
+                }
+
+                $collector = $this->collectorsByActId[$actId] ?? null;
+
+                if ($collector === null) {
+                    $actor = yield $this->request('GET', '/acts/'.rawurlencode($actId), [
+                        'deadline' => $deadline,
+                        'run_id' => $runId,
+                    ]);
+                    $collector = $this->collectorOfActor($actor['data'] ?? null)
+                        ?? throw new ApiException(
+                            "Run {$runId} does not belong to a collector Actor of this library",
+                            0,
+                            null,
+                            $runId,
+                        );
+                    $this->collectorsByActId[$actId] = $collector;
+                }
+            }
+
+            yield Create::promiseFor($this->handle($collector, $runId, $data));
+        });
+    }
+
+    /** The collector whose public Actor ID is the `username/name` of this Apify Actor object. */
+    private function collectorOfActor(mixed $actor): ?Collector
+    {
+        if (! is_array($actor) || ! is_string($actor['username'] ?? null) || ! is_string($actor['name'] ?? null)) {
+            return null;
+        }
+
+        $actorId = $actor['username'].'/'.$actor['name'];
+
+        foreach (Collector::cases() as $collector) {
+            if ($collector->actorId() === $actorId) {
+                return $collector;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Aborts an Apify run (`POST /actor-runs/{id}/abort`), e.g. one that is still running after a timeout.
      *
+     * @throws InvalidInputException when the run ID has characters no Apify ID has
      * @throws ApiException
      * @throws RateLimitException
      * @throws SpendingLimitException
      * @throws MissingApiKeyException
      */
-    public function abort(string $runId): void
+    public function abort(Run|string $run): void
     {
-        $this->request('POST', '/actor-runs/'.rawurlencode($runId).'/abort')->wait();
+        $runId = $this->checkedRunId($run);
+
+        $this->request('POST', '/actor-runs/'.rawurlencode($runId).'/abort', ['run_id' => $runId])->wait();
     }
 
     /** Exception of a failed, aborted or timed-out run; the message adds the Actor's own reason when it has one. */
@@ -595,17 +915,27 @@ final class Client
         $maxRetries = ($options['retry'] ?? true) === false ? 0 : $this->config->maxRetries;
         $deadline = $options['deadline'] ?? null;
         $onRetrySkipped = $options['on_retry_skipped'] ?? null;
-        unset($options['retry'], $options['deadline'], $options['on_retry_skipped']);
+        $runId = $options['run_id'] ?? null;
+        unset($options['retry'], $options['deadline'], $options['on_retry_skipped'], $options['run_id']);
         $url = rtrim($this->config->baseUrl, '/').$path;
 
-        $request = function () use ($method, $url, $options, $maxRetries, $baseTimeout, $deadline, $onRetrySkipped) {
+        $request = function () use (
+            $method,
+            $url,
+            $options,
+            $maxRetries,
+            $baseTimeout,
+            $deadline,
+            $onRetrySkipped,
+            $runId,
+        ) {
             for ($attempt = 0; ; $attempt++) {
                 $options['timeout'] = $this->cappedTimeout($baseTimeout, $deadline);
 
                 try {
                     $response = yield $this->http->requestAsync($method, $url, $options);
 
-                    $decoded = $this->decode($response);
+                    $decoded = $this->decode($response, $runId);
                 } catch (BadResponseException $e) {
                     $status = $e->getResponse()->getStatusCode();
                     $retryAfter = in_array($status, [429, 503], true) ? $this->retryAfter($e->getResponse()) : null;
@@ -623,7 +953,7 @@ final class Client
                     }
 
                     if ($delay === null) {
-                        throw $this->failure($e, $this->retryDelay($attempt, null, false));
+                        throw $this->failure($e, $this->retryDelay($attempt, null, false), $runId);
                     }
 
                     ($this->sleeper)($delay);
@@ -649,7 +979,7 @@ final class Client
                         }
                     }
 
-                    throw $this->failure($e);
+                    throw $this->failure($e, null, $runId);
                 }
 
                 yield Create::promiseFor($decoded);
@@ -740,14 +1070,14 @@ final class Client
     /**
      * @return array<mixed>
      */
-    private function decode(ResponseInterface $response): array
+    private function decode(ResponseInterface $response, ?string $runId): array
     {
         $raw = $response->getBody()->getContents();
 
         try {
             $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $e) {
-            throw new ApiException('Invalid API response: malformed JSON', 0, $e, null, null, ErrorText::body($raw));
+            throw new ApiException('Invalid API response: malformed JSON', 0, $e, $runId, null, ErrorText::body($raw));
         }
 
         if (! is_array($decoded)) {
@@ -755,7 +1085,7 @@ final class Client
                 'Invalid API response: unexpected JSON',
                 0,
                 null,
-                null,
+                $runId,
                 null,
                 ErrorText::body($raw),
             );
@@ -764,7 +1094,7 @@ final class Client
         return $decoded;
     }
 
-    private function failure(mixed $reason, ?float $fallbackRetryAfter = null): Throwable
+    private function failure(mixed $reason, ?float $fallbackRetryAfter, ?string $runId): Throwable
     {
         if ($reason instanceof BadResponseException) {
             $response = $reason->getResponse();
@@ -790,18 +1120,18 @@ final class Client
                 return new SpendingLimitException(
                     'Apify spending limit reached (HTTP 402)'.($detail !== null ? ': '.$detail : ''),
                     $reason,
-                    null,
+                    $runId,
                     null,
                     $type,
                     $body,
                 );
             }
 
-            return new ApiException($message, $status, $reason, null, null, $body);
+            return new ApiException($message, $status, $reason, $runId, null, $body);
         }
 
         if ($reason instanceof GuzzleException) {
-            return new ApiException(ErrorText::transport($reason), 0, $reason);
+            return new ApiException(ErrorText::transport($reason), 0, $reason, $runId);
         }
 
         return $reason instanceof Throwable ? $reason : new ApiException('Apify API request failed');
