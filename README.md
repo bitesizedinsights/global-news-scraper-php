@@ -234,6 +234,26 @@ Results::countsByDomain($result);           // e.g. ['nytimes.com' => 20, 'bbc.c
 
 **There are no counts or matches per `Source`.** An article names its collector and the host of its URL, not the source it came from. A host does not identify a source: several sources of one collector can share a host (for example language editions or sections of one publisher), one outlet can publish on several hosts, a feed can link to another site, and the Actors do not publish which hosts belong to a source. The plan does not settle it either, not even for a run with a single planned source: a collector can offer sources this library version does not know yet and cannot switch off. Filter `countsByDomain()` yourself if you know the hosts of your outlets.
 
+### How to Find Collectors Without Results
+
+The index methods match the result against the collector runs, the `RunPlan` list of `plan()` for the sources you passed to `scrape()` or `start()`. Indexes are 1-based positions in that list:
+
+```php
+Results::inputCount($plan);                  // number of collector runs, e.g. 3
+Results::missingIndexes($result, $plan);     // positions of the collectors without any article, e.g. [3]
+Results::isComplete($result, $plan);         // true when every planned collector has an article
+Results::failedCollectors($result, $plan);   // list<Collector> with a CollectorError
+Results::emptyCollectors($result, $plan);    // list<Collector> with neither an article nor an error
+
+foreach (Results::missingIndexes($result, $plan) as $index) {
+    $sources = $plan[$index - 1]->sources;   // none of them has an article under this collector
+}
+```
+
+`Results::isComplete()` is not `ScrapeResult::isComplete()`: the latter only says that there is no error. A collector counts as present with a single article, so neither method says that every source or every matching article arrived.
+
+With `start()` and `results()`, create the plan when you start and store it next to the batch (`json_encode($plan)`, restore each item with `RunPlan::fromArray()`): a later library version may plan the same sources differently, and a `RunBatch` keeps neither the sources nor the plan order of collectors that failed to start. `failedCollectors()` then includes unfinished and unreadable runs (check `$batch->isFinished()`), and `emptyCollectors()` is only meaningful when `results()` got all runs of the plan: a run you left out looks empty.
+
 **What the counts mean:**
 
 - They count the merged result. Of duplicates only the article of the earlier run is kept, so a collector can show fewer articles (even 0) than its run returned and billed.
