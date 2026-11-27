@@ -212,6 +212,33 @@ $result = $client->scrape(
 );
 ```
 
+## How to Count News Articles per Collector and Domain
+
+`Results` counts the articles of a `ScrapeResult`, from `scrape()` as well as from `results()`:
+
+```php
+use GlobalNewsScraper\Results;
+
+$sources = [Source::NewYorkTimes, Source::BbcNews, Source::TaipeiTimes];
+$plan = $client->plan($sources);
+$result = $client->scrape($sources, limit: 20);
+
+Results::countsByCollector($result, $plan); // every planned collector, also with 0, e.g. ['us' => 20, 'uk' => 20, 'tw-en' => 0]
+Results::countsByDomain($result);           // e.g. ['nytimes.com' => 20, 'bbc.com' => 17, 'bbc.co.uk' => 3]
+```
+
+| Method | Returns |
+| --- | --- |
+| `countsByCollector($result, $plan = [])` | Articles per collector key. With a plan: every planned collector in plan order, also with 0, then any other collector that has articles. Without one: only collectors with articles. |
+| `countsByDomain($result)` | Articles per host of the article URL (`Article::$sourceDomain`), lower-cased and without `www.`; other subdomains stay separate and articles without a host are left out. |
+
+**There are no counts or matches per `Source`.** An article names its collector and the host of its URL, not the source it came from. A host does not identify a source: several sources of one collector can share a host (for example language editions or sections of one publisher), one outlet can publish on several hosts, a feed can link to another site, and the Actors do not publish which hosts belong to a source. The plan does not settle it either, not even for a run with a single planned source: a collector can offer sources this library version does not know yet and cannot switch off. Filter `countsByDomain()` yourself if you know the hosts of your outlets.
+
+**What the counts mean:**
+
+- They count the merged result. Of duplicates only the article of the earlier run is kept, so a collector can show fewer articles (even 0) than its run returned and billed.
+- `limit` applies to each run. A count equal to your limit suggests there is more; a lower count does not show that there is nothing more, and it does not say why: filters, little recent news, the 10 article cap of free-plan and test runs, a maximum charge per run on Apify or the run's time limit all lead to fewer articles, and such a run can still succeed without a `CollectorError`. A successful run whose free-plan runs are used up has no articles and no error either. With `start()` and `wait()`, `Run::$statusMessage` may say more.
+
 ## Error Handling for Partial News Results
 
 A failing collector run, for example a rate limit, a server error or a failed Actor run, does not throw. It is returned in `ScrapeResult::$errors` as a `CollectorError` (collector, message and, when known, the Apify run ID in `runId`, which can be passed to `Client::abort()`, and, for a failed run, the Actor's own reason in `statusMessage`) while the articles of all other collectors are still returned. `hasErrors()` and `isComplete()` summarize the outcome.
