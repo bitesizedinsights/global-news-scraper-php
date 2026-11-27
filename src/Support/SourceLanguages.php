@@ -44,7 +44,8 @@ final class SourceLanguages
         'au' => SourceGroup::English,
         'br' => SourceGroup::Portuguese,
         'ca' => SourceGroup::English,
-        'gt' => SourceGroup::Spanish,
+        // temporarily disabled: pending publication
+        // 'gt' => SourceGroup::Spanish,
         'id-en' => SourceGroup::English,
         'il' => SourceGroup::Hebrew,
         'il-en' => SourceGroup::English,
@@ -52,8 +53,9 @@ final class SourceLanguages
         'in-en' => SourceGroup::English,
         'kr-en' => SourceGroup::English,
         'nl' => SourceGroup::Dutch,
-        'pk-en' => SourceGroup::English,
-        'py' => SourceGroup::Spanish,
+        // temporarily disabled: pending publication
+        // 'pk-en' => SourceGroup::English,
+        // 'py' => SourceGroup::Spanish,
         'tw' => SourceGroup::Chinese,
         'in-finance' => SourceGroup::English,
         'uk-finance' => SourceGroup::English,
@@ -124,18 +126,19 @@ final class SourceLanguages
         'corriere_del_ticino' => SourceGroup::Italian,
         'ticinonews' => SourceGroup::Italian,
         'la_regione' => SourceGroup::Italian,
+        // temporarily disabled: pending publication
         // pk: Urdu, Pashto and Sindhi outlets (no collector default)
-        'jang' => SourceGroup::Urdu,
-        'express_urdu' => SourceGroup::Urdu,
-        'independent_urdu' => SourceGroup::Urdu,
-        'daily_qudrat' => SourceGroup::Urdu,
-        'daily_khabrain' => SourceGroup::Urdu,
-        'bbc_urdu' => SourceGroup::Urdu,
-        'daily_pakistan' => SourceGroup::Urdu,
-        'ary_news_urdu' => SourceGroup::Urdu,
-        'app_pashto' => SourceGroup::Pashto,
-        'bbc_pashto' => SourceGroup::Pashto,
-        'awami_awaz' => SourceGroup::Sindhi,
+        // 'jang' => SourceGroup::Urdu,
+        // 'express_urdu' => SourceGroup::Urdu,
+        // 'independent_urdu' => SourceGroup::Urdu,
+        // 'daily_qudrat' => SourceGroup::Urdu,
+        // 'daily_khabrain' => SourceGroup::Urdu,
+        // 'bbc_urdu' => SourceGroup::Urdu,
+        // 'daily_pakistan' => SourceGroup::Urdu,
+        // 'ary_news_urdu' => SourceGroup::Urdu,
+        // 'app_pashto' => SourceGroup::Pashto,
+        // 'bbc_pashto' => SourceGroup::Pashto,
+        // 'awami_awaz' => SourceGroup::Sindhi,
         // ph: English-language outlets (no collector default)
         'inquirer' => SourceGroup::English,
         'manila_times' => SourceGroup::English,
@@ -155,11 +158,12 @@ final class SourceLanguages
         'bombo_radyo_bacolod' => SourceGroup::Hiligaynon,
         'bombo_radyo_legazpi' => SourceGroup::Bikol,
         'bombo_radyo_naga' => SourceGroup::Bikol,
+        // temporarily disabled: pending publication
         // kurdish: one entry per outlet; mixed feeds get the first-listed (main) variety (no collector default)
-        'botan_times' => SourceGroup::Kurmanji,
-        'zazaki_news' => SourceGroup::Zazaki,
-        'voa_kurdish_sorani' => SourceGroup::Sorani,
-        'voa_kurdish_kurmanji' => SourceGroup::Kurmanji,
+        // 'botan_times' => SourceGroup::Kurmanji,
+        // 'zazaki_news' => SourceGroup::Zazaki,
+        // 'voa_kurdish_sorani' => SourceGroup::Sorani,
+        // 'voa_kurdish_kurmanji' => SourceGroup::Kurmanji,
     ];
 
     /**

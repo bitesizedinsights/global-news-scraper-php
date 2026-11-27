@@ -37,9 +37,10 @@ enum SourceGroup: string
     case Hindi = 'hi';
     /** Traditional Chinese (Taiwan). */
     case Chinese = 'zh';
-    case Urdu = 'ur';
-    case Pashto = 'ps';
-    case Sindhi = 'sd';
+    // temporarily disabled: pending publication (their only collectors are disabled)
+    // case Urdu = 'ur';
+    // case Pashto = 'ps';
+    // case Sindhi = 'sd';
     /** Filipino/Tagalog. */
     case Tagalog = 'tl';
     /** Ilocano: ISO 639-3 code, it has no ISO 639-1 code. */
@@ -48,14 +49,13 @@ enum SourceGroup: string
     case Hiligaynon = 'hil';
     /** Bikol: ISO 639-3 macrolanguage code, it has no ISO 639-1 code. */
     case Bikol = 'bcl';
-    /**
-     * Kurdish is split by variety, as the Kurdish collector documents it: Kurmanji (Latin script), Sorani (Arabic
-     * script) and Zazaki. The ISO 639-1 code `ku` would merge them, so the ISO 639-3 / BCP 47 codes are used.
-     */
-    case Kurmanji = 'kmr';
-    case Sorani = 'ckb';
-    /** Zazaki (Kirmancki, Dimli): a language related to Kurdish, covered by the Kurdish collector. */
-    case Zazaki = 'zza';
+    // temporarily disabled: pending publication (their only collector is disabled)
+    // Kurdish is split by variety, as the Kurdish collector documents it: Kurmanji (Latin script), Sorani (Arabic
+    // script) and Zazaki. The ISO 639-1 code `ku` would merge them, so the ISO 639-3 / BCP 47 codes are used.
+    // case Kurmanji = 'kmr';
+    // case Sorani = 'ckb';
+    // Zazaki (Kirmancki, Dimli): a language related to Kurdish, covered by the Kurdish collector.
+    // case Zazaki = 'zza';
 
     /**
      * Display name, e.g. `Spanish`.

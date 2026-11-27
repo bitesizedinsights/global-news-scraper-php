@@ -9,6 +9,10 @@ namespace GlobalNewsScraper;
  */
 enum Collector: string
 {
+    // A case commented out as `// case Name = 'key';` is disabled: scripts/generate-sources.php reads those lines and
+    // writes its sources as comments. To re-enable: uncomment the case and its actorId() arm, regenerate the sources,
+    // uncomment its lines in Support/SourceLanguages (pk and kurdish: also their SourceGroup cases) and in
+    // tests/SourceGroupTest, remove its key from tests/DisabledCollectorsTest and restore counts in tests and docs.
     case Es = 'es';
     case Fr = 'fr';
     case Id = 'id';
@@ -34,19 +38,19 @@ enum Collector: string
     case Br = 'br';
     case Ca = 'ca';
     case Ch = 'ch';
-    case Gt = 'gt';
+    // case Gt = 'gt'; // temporarily disabled: pending publication
     case IdEn = 'id-en';
     case Il = 'il';
     case IlEn = 'il-en';
     case In = 'in';
     case InEn = 'in-en';
     case KrEn = 'kr-en';
-    case Kurdish = 'kurdish';
+    // case Kurdish = 'kurdish'; // temporarily disabled: pending publication
     case Nl = 'nl';
     case Ph = 'ph';
-    case Pk = 'pk';
-    case PkEn = 'pk-en';
-    case Py = 'py';
+    // case Pk = 'pk'; // temporarily disabled: pending publication
+    // case PkEn = 'pk-en'; // temporarily disabled: pending publication
+    // case Py = 'py'; // temporarily disabled: pending publication
     case Tw = 'tw';
     case InFinance = 'in-finance';
     case UkFinance = 'uk-finance';
@@ -93,19 +97,19 @@ enum Collector: string
             self::Br => 'brazil-news-scraper',
             self::Ca => 'canada-news-scraper',
             self::Ch => 'swiss-news-scraper',
-            self::Gt => 'guatemala-news-scraper',
+            // self::Gt => 'guatemala-news-scraper', // temporarily disabled: pending publication
             self::IdEn => 'indonesia-english-news-scraper',
             self::Il => 'hebrew-news-scraper',
             self::IlEn => 'english-israel-news-scraper',
             self::In => 'indian-news-article-scraper',
             self::InEn => 'india-english-news-scraper',
             self::KrEn => 'korean-news-article-scraper',
-            self::Kurdish => 'kurdish-news-scraper',
+            // self::Kurdish => 'kurdish-news-scraper', // temporarily disabled: pending publication
             self::Nl => 'dutch-news-scraper',
             self::Ph => 'philippine-news-scraper',
-            self::Pk => 'pakistani-news-scraper',
-            self::PkEn => 'pakistan-english-news-articles-scraper',
-            self::Py => 'paraguay-news-scraper',
+            // self::Pk => 'pakistani-news-scraper', // temporarily disabled: pending publication
+            // self::PkEn => 'pakistan-english-news-articles-scraper', // temporarily disabled: pending publication
+            // self::Py => 'paraguay-news-scraper', // temporarily disabled: pending publication
             self::Tw => 'taiwan-news-search-scraper',
             self::InFinance => 'indian-share-market-business-scraper',
             self::UkFinance => 'uk-business-finance-news-scraper',

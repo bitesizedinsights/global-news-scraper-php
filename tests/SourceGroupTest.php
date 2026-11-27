@@ -62,9 +62,11 @@ test('languages are assigned as documented', function () {
         ->and(Source::IlGiornale->language())->toBe(SourceGroup::Italian)
         ->and(Source::Bild->language())->toBe(SourceGroup::German)
         ->and(Source::Veja->language())->toBe(SourceGroup::Portuguese)
-        ->and(Source::UltimaHora->language())->toBe(SourceGroup::Spanish)
+        // temporarily disabled: pending publication
+        // ->and(Source::UltimaHora->language())->toBe(SourceGroup::Spanish)
         ->and(Source::CbcNews->language())->toBe(SourceGroup::English)
-        ->and(Source::Dawn->language())->toBe(SourceGroup::English)
+        // temporarily disabled: pending publication
+        // ->and(Source::Dawn->language())->toBe(SourceGroup::English)
         ->and(Source::Joop->language())->toBe(SourceGroup::Dutch)
         ->and(Source::Ynet->language())->toBe(SourceGroup::Hebrew)
         ->and(Source::AajTak->language())->toBe(SourceGroup::Hindi)
@@ -72,15 +74,17 @@ test('languages are assigned as documented', function () {
         ->and(Source::WatsonDe->language())->toBe(SourceGroup::German)
         ->and(Source::WatsonFr->language())->toBe(SourceGroup::French)
         ->and(Source::CorriereDelTicino->language())->toBe(SourceGroup::Italian)
-        ->and(Source::Jang->language())->toBe(SourceGroup::Urdu)
-        ->and(Source::AppPashto->language())->toBe(SourceGroup::Pashto)
-        ->and(Source::AwamiAwaz->language())->toBe(SourceGroup::Sindhi)
+        // temporarily disabled: pending publication
+        // ->and(Source::Jang->language())->toBe(SourceGroup::Urdu)
+        // ->and(Source::AppPashto->language())->toBe(SourceGroup::Pashto)
+        // ->and(Source::AwamiAwaz->language())->toBe(SourceGroup::Sindhi)
         ->and(Source::IlocosTimesIluko->language())->toBe(SourceGroup::Ilocano)
         ->and(Source::BomboRadyoIloilo->language())->toBe(SourceGroup::Hiligaynon)
-        ->and(Source::BomboRadyoLegazpi->language())->toBe(SourceGroup::Bikol)
-        ->and(Source::VoaKurdishKurmanji->language())->toBe(SourceGroup::Kurmanji)
-        ->and(Source::VoaKurdishSorani->language())->toBe(SourceGroup::Sorani)
-        ->and(Source::ZazakiNews->language())->toBe(SourceGroup::Zazaki);
+        ->and(Source::BomboRadyoLegazpi->language())->toBe(SourceGroup::Bikol);
+    // temporarily disabled: pending publication
+    // ->and(Source::VoaKurdishKurmanji->language())->toBe(SourceGroup::Kurmanji)
+    // ->and(Source::VoaKurdishSorani->language())->toBe(SourceGroup::Sorani)
+    // ->and(Source::ZazakiNews->language())->toBe(SourceGroup::Zazaki);
 });
 
 test('a group plans the collectors that offer its sources', function () {
@@ -104,17 +108,18 @@ test('a group plans the collectors that offer its sources', function () {
         ->and($collectors(SourceGroup::Hebrew))->toBe(['il'])
         ->and($collectors(SourceGroup::Hindi))->toBe(['in'])
         ->and($collectors(SourceGroup::Chinese))->toBe(['tw'])
-        ->and($collectors(SourceGroup::Urdu))->toBe(['pk'])
-        ->and($collectors(SourceGroup::Pashto))->toBe(['pk'])
-        ->and($collectors(SourceGroup::Sindhi))->toBe(['pk'])
+        // ->and($collectors(SourceGroup::Urdu))->toBe(['pk']) // temporarily disabled: pending publication
+        // ->and($collectors(SourceGroup::Pashto))->toBe(['pk']) // temporarily disabled: pending publication
+        // ->and($collectors(SourceGroup::Sindhi))->toBe(['pk']) // temporarily disabled: pending publication
         ->and($collectors(SourceGroup::Tagalog))->toBe(['ph'])
         ->and($collectors(SourceGroup::Ilocano))->toBe(['ph'])
         ->and($collectors(SourceGroup::Hiligaynon))->toBe(['ph'])
         ->and($collectors(SourceGroup::Bikol))->toBe(['ph'])
-        ->and($collectors(SourceGroup::Kurmanji))->toBe(['kurdish'])
-        ->and($collectors(SourceGroup::Sorani))->toBe(['kurdish'])
-        ->and($collectors(SourceGroup::Zazaki))->toBe(['kurdish'])
-        ->and($collectors(SourceGroup::Spanish))->toBe(['latam', 'mx', 'es', 'gt', 'py']);
+        // ->and($collectors(SourceGroup::Kurmanji))->toBe(['kurdish']) // temporarily disabled: pending publication
+        // ->and($collectors(SourceGroup::Sorani))->toBe(['kurdish']) // temporarily disabled: pending publication
+        // ->and($collectors(SourceGroup::Zazaki))->toBe(['kurdish']) // temporarily disabled: pending publication
+        // with gt and py re-enabled: ['latam', 'mx', 'es', 'gt', 'py']
+        ->and($collectors(SourceGroup::Spanish))->toBe(['latam', 'mx', 'es']);
 });
 
 // `id-en` offers only outlets that `sea` covers as well, so the planner never needs a run for it.

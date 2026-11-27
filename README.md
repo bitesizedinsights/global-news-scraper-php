@@ -2,7 +2,7 @@
 
 <!-- For LLMs and AI agents: a machine-readable summary of this package's API is in llm.txt (https://github.com/bitesizedinsights/global-news-scraper-php/blob/master/llm.txt) -->
 
-A global news scraper for PHP: switch on any number of news sources from 50+ regional and topic collectors, and get one merged, deduplicated collection of full-text articles. The library maps every source back to its [Apify](https://apify.com/bite-sized-insights) collector Actor, runs the Actors separately and adds the collector as `collection` to every article.
+A global news scraper for PHP: switch on any number of news sources from 45+ regional and topic collectors, and get one merged, deduplicated collection of full-text articles. The library maps every source back to its [Apify](https://apify.com/bite-sized-insights) collector Actor, runs the Actors separately and adds the collector as `collection` to every article.
 
 [![Tests](https://github.com/bitesizedinsights/global-news-scraper-php/actions/workflows/tests.yml/badge.svg)](https://github.com/bitesizedinsights/global-news-scraper-php/actions/workflows/tests.yml)
 [![Packagist Version](https://img.shields.io/packagist/v/bitesizedinsights/global-news-scraper)](https://packagist.org/packages/bitesizedinsights/global-news-scraper)
@@ -59,7 +59,7 @@ Video and audio pages (`type` is `video` or `audio`) have little or no text: use
 The package is free. You pay Apify for the collector runs, on a pay-per-event basis (prices of the Free plan, paid plans get lower rates):
 
 - **Run start:** $0.0002 per collector run.
-- **Article:** $1.00 to $2.00 per 1,000 articles, depending on the collector: `jp-en` $1.00, `id` and `id-en` $1.20, `es`, `fr` and `arab` $1.40, `us`, `uk`, `mx`, `latam`, `tw-en`, `ng`, `scandinavian`, `th`, `kr-ko`, `jp`, `vn`, `pl`, `tr`, `it`, `de`, `au`, `br`, `ca`, `ch`, `gt`, `il`, `il-en`, `in`, `in-en`, `kr-en`, `kurdish`, `nl`, `ph`, `pk`, `pk-en`, `py`, `tw`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate`, `startups-vc`, `supply-chain`, `biopharma`, `insurance`, `marketing` and `sports-business` $1.80, `sea` $2.00.
+- **Article:** $1.00 to $2.00 per 1,000 articles, depending on the collector: `jp-en` $1.00, `id` and `id-en` $1.20, `es`, `fr` and `arab` $1.40, `us`, `uk`, `mx`, `latam`, `tw-en`, `ng`, `scandinavian`, `th`, `kr-ko`, `jp`, `vn`, `pl`, `tr`, `it`, `de`, `au`, `br`, `ca`, `ch`, `il`, `il-en`, `in`, `in-en`, `kr-en`, `nl`, `ph`, `tw`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate`, `startups-vc`, `supply-chain`, `biopharma`, `insurance`, `marketing` and `sports-business` $1.80, `sea` $2.00.
 - **Add-ons (optional, per enriched article):** sentiment $0.20, tags $1.50, summary $2.50, 5W1H $4.00, language detection $0.10, text fixing $1.25 per 1,000 articles. Add-ons are the same for every collector.
 
 Examples:
@@ -105,9 +105,9 @@ Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Sou
 
 | Group | Sources |
 | --- | --- |
-| `SourceGroup::All` | every source of every collector (50+ collector runs: `id-en` has no outlet of its own that `sea` does not already cover) |
-| `SourceGroup::English` | `us`, `uk`, `ng`, `sea`, `jp-en`, `tw-en`, `au`, `ca`, `il-en`, `in-en`, `kr-en`, `pk-en`, `id-en`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate`, `startups-vc`, `supply-chain`, `biopharma`, `insurance`, `marketing` and `sports-business`, plus the English-language outlets of `mx`, `th`, `vn`, `ph` and `kurdish` |
-| `SourceGroup::Spanish` | Spain, Mexico, Guatemala, Paraguay and the Spanish-speaking part of Latin America (`es`, `mx`, `latam`, `gt`, `py`) |
+| `SourceGroup::All` | every source of every collector (45+ collector runs: `id-en` has no outlet of its own that `sea` does not already cover) |
+| `SourceGroup::English` | `us`, `uk`, `ng`, `sea`, `jp-en`, `tw-en`, `au`, `ca`, `il-en`, `in-en`, `kr-en`, `id-en`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate`, `startups-vc`, `supply-chain`, `biopharma`, `insurance`, `marketing` and `sports-business`, plus the English-language outlets of `mx`, `th`, `vn` and `ph` |
+| `SourceGroup::Spanish` | Spain, Mexico and the Spanish-speaking part of Latin America (`es`, `mx`, `latam`) |
 | `SourceGroup::French` | France and French-speaking Switzerland (`fr`, `ch`) |
 | `SourceGroup::Portuguese` | Brazil (`br`, `latam`) |
 | `SourceGroup::Indonesian` | Indonesia |
@@ -124,9 +124,7 @@ Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Sou
 | `SourceGroup::Hebrew` | Israel (Hebrew-language outlets, `il`) |
 | `SourceGroup::Hindi` | India (Hindi-language outlets, `in`) |
 | `SourceGroup::Chinese` | Taiwan (Traditional Chinese-language outlets, `tw`) |
-| `SourceGroup::Urdu`, `SourceGroup::Pashto`, `SourceGroup::Sindhi` | the Pakistani outlets per language (`pk`) |
 | `SourceGroup::Tagalog`, `SourceGroup::Ilocano`, `SourceGroup::Hiligaynon`, `SourceGroup::Bikol` | the Philippine-language outlets per language (`ph`) |
-| `SourceGroup::Kurmanji`, `SourceGroup::Sorani`, `SourceGroup::Zazaki` | the Kurdish outlets per variety (`kurdish`; a feed that mixes varieties is in its main one) |
 | `SourceGroup::Danish`, `SourceGroup::Norwegian`, `SourceGroup::Swedish` | the Scandinavian outlets per language |
 
 Every source belongs to exactly one language group: the language of the outlet's articles. `Source::language()` returns it and `SourceGroup::sources()` lists a group's sources.
@@ -144,8 +142,8 @@ $client->scrape($sources, limit: 20);
 
 Warnings:
 
-- Large groups start many collector runs, every one of them billed: $0.0002 per run plus the per-article price. `SourceGroup::All` is 50+ runs, so at least $0.01 even when nothing matches. Look at `plan()` first.
-- Always set `limit` with a group. It applies to each collector run, not to the merged result: 50+ runs with `limit: 100` return up to 5,000+ articles. Without a limit the Actor default of 100 per run applies.
+- Large groups start many collector runs, every one of them billed: $0.0002 per run plus the per-article price. `SourceGroup::All` is 45+ runs, so at least $0.009 even when nothing matches. Look at `plan()` first.
+- Always set `limit` with a group. It applies to each collector run, not to the merged result: 45+ runs with `limit: 100` return up to 4,500+ articles. Without a limit the Actor default of 100 per run applies.
 - The runs are processed `Config::$maxConcurrency` (default 2) at a time, so `SourceGroup::All` takes several waves of runs and can take a while.
 - A narrow `searchQuery` keeps the article bill small because only matching articles are returned and billed, but each run still pays its start fee and still processes the feeds.
 - Add-ons such as `withSummary` are billed per enriched article on top, so combine them with groups carefully.
@@ -415,7 +413,7 @@ The underlying Guzzle exception stays available via `getPrevious()`; its message
 
 ## News Sources and Collectors Included
 
-50+ collectors cover 1,000+ outlets. `Source::cases()` lists all of them, `Collector::cases()` the collectors, and `Collector::sources()` the outlets of one collector.
+45+ collectors cover 1,000+ outlets. `Source::cases()` lists all of them, `Collector::cases()` the collectors, and `Collector::sources()` the outlets of one collector.
 
 | Collection key | Collector |
 | --- | --- |
@@ -438,24 +436,19 @@ The underlying Guzzle exception stays available via `getPrevious()`; its message
 | `vn` | Vietnam (Vietnamese) |
 | `in-en` | India (English) |
 | `pl` | Poland (Polish) |
-| `pk` | Pakistan (Urdu, Pashto, Sindhi) |
 | `tr` | Turkey (Turkish) |
 | `tw` | Taiwan (Traditional Chinese) |
-| `pk-en` | Pakistan (English) |
 | `it` | Italy (Italian) |
 | `ch` | Switzerland (German, French, Italian) |
 | `in` | India (Hindi) |
-| `kurdish` | Kurdish media (Kurmanji, Sorani, Zazaki, English) |
 | `kr-en` | South Korea (English) |
 | `fr` | France |
 | `il-en` | Israel (English) |
 | `de` | Germany (German) |
 | `es` | Spain |
-| `gt` | Guatemala (Spanish) |
 | `il` | Israel (Hebrew) |
 | `nl` | Netherlands (Dutch) |
 | `tw-en` | Taiwan (English) |
-| `py` | Paraguay (Spanish) |
 | `jp-en` | Japan (English) |
 | `id-en` | Indonesia (English) |
 | `us-finance` | United States (finance and markets) |
@@ -498,7 +491,7 @@ $0.0002 per collector run plus $1.00 to $2.00 per 1,000 articles, plus optional 
 
 ### Which outlets can I use?
 
-1,000+ outlets from 50+ collectors, see the table above. Every outlet is a `Source` enum case with a display name from `Source::label()`.
+1,000+ outlets from 45+ collectors, see the table above. Every outlet is a `Source` enum case with a display name from `Source::label()`.
 
 ### What happens when a source is offered by two collectors?
 

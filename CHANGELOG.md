@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file. The format is b
 
 ## [Unreleased]
 
+### Removed
+
+- Temporarily disabled, pending publication: the `gt`, `kurdish`, `pk`, `pk-en` and `py` collectors (`Collector::Gt`, `Kurdish`, `Pk`, `PkEn`, `Py`), the 33 `Source` cases only they offer and the `SourceGroup` cases `Urdu`, `Pashto`, `Sindhi`, `Kurmanji`, `Sorani` and `Zazaki`. `Source::PrensaLibre` and `Source::AbcColor` stay available through `latam`. This leaves 47 collectors and 1,067 sources. `fromArray()` throws `InvalidArgumentException` for stored `Run`, `RunPlan` and `CollectorError` data of these collectors (also inside a `RunBatch` or the errors of a `ScrapeResult`) and for these sources in a `RunPlan`; looking up a bare run ID of such a collector throws `ApiException`.
+
 ### Fixed
 
 - The public `abort()` is now bounded by `Config::$timeout` like the other calls: a retry whose wait would pass it is skipped and the request timeout is cut to the time left plus 5 seconds.

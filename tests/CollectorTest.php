@@ -11,12 +11,12 @@ use GlobalNewsScraper\Exception\RateLimitException;
 use GlobalNewsScraper\Source;
 use GlobalNewsScraper\SourceGroup;
 
-test('there are 52 collectors with unique keys and actor IDs', function () {
+test('there are 47 collectors with unique keys and actor IDs', function () {
     $cases = Collector::cases();
 
-    expect($cases)->toHaveCount(52)
-        ->and(array_unique(array_map(fn (Collector $c) => $c->value, $cases)))->toHaveCount(52)
-        ->and(array_unique(array_map(fn (Collector $c) => $c->actorId(), $cases)))->toHaveCount(52);
+    expect($cases)->toHaveCount(47)
+        ->and(array_unique(array_map(fn (Collector $c) => $c->value, $cases)))->toHaveCount(47)
+        ->and(array_unique(array_map(fn (Collector $c) => $c->actorId(), $cases)))->toHaveCount(47);
 });
 
 test('collector maps to its Apify actor', function () {
