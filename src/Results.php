@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace GlobalNewsScraper;
 
 use GlobalNewsScraper\DTO\Article;
+use GlobalNewsScraper\DTO\RunBatch;
 use GlobalNewsScraper\DTO\RunPlan;
 use GlobalNewsScraper\DTO\ScrapeResult;
 use GlobalNewsScraper\Exception\InvalidInputException;
@@ -126,6 +127,48 @@ final class Results
         }
 
         return $collectors;
+    }
+
+    /**
+     * Sources of the collectors with a `CollectorError`, in plan order, to pass to another `scrape()` or `start()`.
+     * The list can be empty, which both reject. Collectors without an article and without an error are not included:
+     * their runs may well have succeeded, and another run is billed again. `plan()` of the returned sources may pick
+     * other collectors than before for sources that several collectors offer.
+     *
+     * An error does not prove that nothing ran or was billed. Check `CollectorError::$runId` first: if that run
+     * succeeded and only reading it failed, `Client::results()` reads it again without a new run. Without a run ID,
+     * after a server error or a timeout on the start, the run may exist all the same: check Apify Console.
+     *
+     * After `Client::results()` pass the batch returned by `Client::wait()`. Then collectors with a run that is
+     * unfinished (starting it again would run it twice) or successful (read it again with `results()`) are left out.
+     * Without the batch their sources are returned like those of failed runs.
+     *
+     * @param  array<mixed>|Collection<array-key, mixed>  $plan  As for `inputCount()`.
+     * @return list<Source>
+     *
+     * @throws InvalidInputException
+     */
+    public static function unprocessed(ScrapeResult $result, array|Collection $plan, ?RunBatch $batch = null): array
+    {
+        $failed = self::failedKeys($result);
+
+        foreach ($batch->runs ?? [] as $run) {
+            if (! $run->isFinished() || $run->isSuccessful()) {
+                unset($failed[$run->collector->value]);
+            }
+        }
+
+        $sources = [];
+
+        foreach (self::runPlans($plan) as $key => $runPlan) {
+            if (isset($failed[$key])) {
+                foreach ($runPlan->sources as $source) {
+                    $sources[$source->value] = $source;
+                }
+            }
+        }
+
+        return array_values($sources);
     }
 
     /**

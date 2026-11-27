@@ -254,6 +254,24 @@ foreach (Results::missingIndexes($result, $plan) as $index) {
 
 With `start()` and `results()`, create the plan when you start and store it next to the batch (`json_encode($plan)`, restore each item with `RunPlan::fromArray()`): a later library version may plan the same sources differently, and a `RunBatch` keeps neither the sources nor the plan order of collectors that failed to start. `failedCollectors()` then includes unfinished and unreadable runs (check `$batch->isFinished()`), and `emptyCollectors()` is only meaningful when `results()` got all runs of the plan: a run you left out looks empty.
 
+### How to Run Failed News Collectors Again
+
+`Results::unprocessed()` returns the sources of the collectors with a `CollectorError`, ready for another call:
+
+```php
+$retry = Results::unprocessed($result, $plan);          // after scrape()
+$retry = Results::unprocessed($result, $plan, $batch);  // after results(), with the batch returned by wait()
+
+if ($retry !== []) {                                    // scrape() and start() reject an empty list
+    $more = $client->scrape($retry, limit: 20);
+}
+```
+
+- Collectors with neither an article nor an error are not included: their runs may well have succeeded, and every new run is billed.
+- With the batch, collectors with a run that is unfinished or successful are left out: starting an unfinished one again would run it twice, and a successful run that could not be read only needs another `results()` call. **Without the batch their sources are returned too**, so always pass it after `results()`.
+- An error does not prove that nothing ran or was billed. Look at `$error->runId` first: `results($error->runId)` reads a run that succeeded after all, without a new run. A start that ended with a server error or a timeout may have created a run although there is no ID: check Apify Console. After a spending limit, raise it before retrying.
+- `plan($retry)` may pick other collectors than before for sources that several collectors offer, so count a retry against its own plan. Nothing is deduplicated across two results: compare the URLs yourself when you combine them.
+
 **What the counts mean:**
 
 - They count the merged result. Of duplicates only the article of the earlier run is kept, so a collector can show fewer articles (even 0) than its run returned and billed.

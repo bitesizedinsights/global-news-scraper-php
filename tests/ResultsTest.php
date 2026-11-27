@@ -5,11 +5,13 @@ declare(strict_types=1);
 use GlobalNewsScraper\Collector;
 use GlobalNewsScraper\DTO\Article;
 use GlobalNewsScraper\DTO\CollectorError;
+use GlobalNewsScraper\DTO\Run;
 use GlobalNewsScraper\DTO\RunBatch;
 use GlobalNewsScraper\DTO\RunPlan;
 use GlobalNewsScraper\DTO\ScrapeResult;
 use GlobalNewsScraper\Exception\InvalidInputException;
 use GlobalNewsScraper\Results;
+use GlobalNewsScraper\RunStatus;
 use GlobalNewsScraper\Source;
 use Illuminate\Support\Collection;
 
@@ -226,5 +228,99 @@ it('rejects a source list passed as plan in every index method', function (strin
     $arguments = $method === 'inputCount' ? [[Source::BbcNews]] : [countedResult([]), [Source::BbcNews]];
 
     Results::$method(...$arguments);
-})->with(['inputCount', 'missingIndexes', 'isComplete', 'failedCollectors', 'emptyCollectors'])
+})->with(['inputCount', 'missingIndexes', 'isComplete', 'failedCollectors', 'emptyCollectors', 'unprocessed'])
     ->throws(InvalidInputException::class);
+
+/** @param  list<Collector>  $failed */
+function failedResult(array $failed): ScrapeResult
+{
+    return new ScrapeResult(new Collection, new Collection(array_map(
+        static fn (Collector $collector): CollectorError => new CollectorError($collector, 'boom'),
+        $failed,
+    )));
+}
+
+it('returns the sources of failed collectors only, in plan order', function () {
+    $plan = [
+        new RunPlan(Collector::Us, [Source::NewYorkTimes, Source::WashingtonPost]),
+        new RunPlan(Collector::Uk, [Source::BbcNews]),
+        new RunPlan(Collector::JpEn, [Source::JapanTimes]),
+    ];
+
+    expect(Results::unprocessed(failedResult([Collector::JpEn, Collector::Us]), $plan))
+        ->toBe([Source::NewYorkTimes, Source::WashingtonPost, Source::JapanTimes])
+        ->and(Results::unprocessed(failedResult([]), $plan))->toBe([])
+        ->and(Results::unprocessed(failedResult([Collector::Es]), $plan))->toBe([]);
+});
+
+it('returns each source once when the plan lists a collector twice', function () {
+    $plan = [...usUkPlan(), ...usUkPlan()];
+
+    expect(Results::unprocessed(failedResult([Collector::Us]), $plan))->toBe([Source::NewYorkTimes]);
+});
+
+it('leaves out collectors whose batch run is unfinished or successful', function (?RunStatus $status, bool $retry) {
+    $batch = new RunBatch(new Collection([new Run(Collector::Us, 'abc', $status)]), new Collection);
+
+    expect(Results::unprocessed(failedResult([Collector::Us]), usUkPlan(), $batch))
+        ->toBe($retry ? [Source::NewYorkTimes] : []);
+})->with([
+    'unknown' => [null, false],
+    'ready' => [RunStatus::Ready, false],
+    'running' => [RunStatus::Running, false],
+    'aborting' => [RunStatus::Aborting, false],
+    'timing out' => [RunStatus::TimingOut, false],
+    'succeeded' => [RunStatus::Succeeded, false],
+    'failed' => [RunStatus::Failed, true],
+    'aborted' => [RunStatus::Aborted, true],
+    'timed out' => [RunStatus::TimedOut, true],
+]);
+
+it('leaves a collector out when any of its batch runs is still pending', function () {
+    $batch = new RunBatch(new Collection([
+        new Run(Collector::Us, 'abc', RunStatus::Failed),
+        new Run(Collector::Us, 'def', RunStatus::Running),
+    ]), new Collection);
+
+    expect(Results::unprocessed(failedResult([Collector::Us]), usUkPlan(), $batch))->toBe([]);
+});
+
+it('returns the failed and unstarted collectors of a waited batch, not the running one', function () {
+    $client = makeClient([
+        US_SLUG => ['start' => jsonResponse(400, ['error' => ['type' => 'x', 'message' => 'y']])],
+        UK_SLUG => ['statuses' => ['RUNNING', 'RUNNING', 'RUNNING']],
+        'bite-sized-insights~japan-news-scraper' => ['statuses' => ['FAILED']],
+    ]);
+    $sources = [Source::NewYorkTimes, Source::BbcNews, Source::JapanTimes];
+    $plan = $client->plan($sources);
+    $batch = $client->wait($client->start($sources), 0);
+    $result = $client->results($batch);
+
+    expect(Results::unprocessed($result, $plan, $batch))
+        ->toEqualCanonicalizing([Source::NewYorkTimes, Source::JapanTimes])
+        ->and(Results::unprocessed($result, $plan))
+        ->toEqualCanonicalizing([Source::NewYorkTimes, Source::BbcNews, Source::JapanTimes]);
+});
+
+it('does not ask to rerun a succeeded run whose dataset could not be read', function () {
+    $client = makeClient([US_SLUG => ['dataset' => jsonResponse(500, [])]]);
+    $plan = $client->plan(Source::NewYorkTimes);
+    $batch = $client->wait($client->start(Source::NewYorkTimes), 0);
+    $result = $client->results($batch);
+
+    expect(Results::failedCollectors($result, $plan))->toBe([Collector::Us])
+        ->and(Results::unprocessed($result, $plan, $batch))->toBe([]);
+});
+
+it('gives sources that scrape() accepts again, leaving the empty collector alone', function () {
+    $sources = [Source::NewYorkTimes, Source::BbcNews];
+    $failing = makeClient([US_SLUG => ['statuses' => ['FAILED']], UK_SLUG => []]);
+    $retry = Results::unprocessed($failing->scrape($sources), $failing->plan($sources));
+
+    $history = [];
+    $working = makeClient([US_SLUG => ['items' => [article('https://a.test/1')]]], $history);
+
+    expect($retry)->toBe([Source::NewYorkTimes])
+        ->and($working->scrape($retry)->entries)->toHaveCount(1)
+        ->and($history)->toHaveCount(2);
+});
