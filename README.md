@@ -409,6 +409,45 @@ $json = json_encode($result);                            // database column, cac
 $restored = ScrapeResult::fromArray(json_decode($json, true));
 ```
 
+## Filter News Results and Export Them to JSON, CSV or JSON Lines
+
+The filters of a `ScrapeResult` work on what was already fetched (and billed). Each returns new objects with their own collections, keeps the errors and leaves the original unchanged:
+
+```php
+$articles = $result->onlyArticles();               // without video and audio pages
+$recent = $result->since('2026-02-15');            // published at or after that moment
+$all = $result->since(new DateTimeImmutable('-24 hours'), keepUndated: true);
+
+foreach ($result->groupByCollection() as $key => $group) {
+    echo "{$key}: {$group->entries->count()} articles, {$group->errors->count()} errors\n";
+}
+```
+
+- `since()` compares `publishedAt()` as a moment in time (see [Publication Date as a PHP Date](#publication-date-as-a-php-date) for dates without an offset; the third argument `assumedTimeZone` sets their zone and the zone of a string argument). A string must be ISO 8601, otherwise `InvalidInputException` is thrown. Articles without a usable date are dropped unless `keepUndated: true`, while the Actors' `startDate` filter keeps them.
+- `groupByCollection()` returns a `Collection` of `ScrapeResult` objects by collector key. Each has that collector's articles and errors; a collector with only errors gets a group without articles, one with neither gets none.
+
+### Save Results to a File
+
+```php
+$json = $result->toJson(JSON_PRETTY_PRINT);
+
+$result->saveTo('news.json');                      // articles and errors
+$result->onlyArticles()->saveTo('news.csv');       // articles only
+$result->saveTo('news.jsonl', overwrite: true);    // articles only, one per line
+$result->saveTo('news.txt', ExportFormat::Jsonl);  // GlobalNewsScraper\ExportFormat
+```
+
+| Format | Extension | Content |
+| --- | --- | --- |
+| JSON | `.json` | `toJson()`: `entries` and `errors`, restorable with `ScrapeResult::fromArray()` |
+| JSON Lines | `.jsonl`, `.ndjson` | One article per line in the shape of `Article::toArray()`. **No errors** |
+| CSV | `.csv` | A header row and one row per article with the same fields. **No errors** |
+
+- **Existing files:** `saveTo()` never replaces a file unless you pass `overwrite: true`; it throws `ExportException`. An overwritten file keeps its permissions. A symbolic link counts as existing and is replaced, not followed.
+- **Atomic:** the content is written to a temporary file in the same directory and then takes the target name, so the target is complete or untouched. The directory must exist and be writable; only local paths are accepted.
+- **Encoding:** the output is UTF-8 without a byte order mark. Invalid bytes become U+FFFD.
+- **CSV safety:** scraped text is untrusted. A cell that a spreadsheet could run as a formula (it starts with `=`, `+`, `-`, `@`, their full-width forms, also after white space or invisible characters, or with a tab or line break) gets a leading apostrophe `'`. Every field is quoted (RFC 4180, `\r\n` row ends, no backslash escaping: read it with `fgetcsv($handle, null, ',', '"', '')`), NUL bytes are removed, lists and objects such as `authors` and `tags` are JSON. So CSV values can differ from the originals; use JSON or JSON Lines to process the data. Long texts can exceed the cell limit of your spreadsheet.
+
 ## Configure Concurrency and Timeouts for the PHP News Scraper
 
 ```php
