@@ -1058,7 +1058,10 @@ final class Client
     {
         $runId = $this->checkedRunId($run);
 
-        $this->request('POST', '/actor-runs/'.rawurlencode($runId).'/abort', ['run_id' => $runId])->wait();
+        $this->request('POST', '/actor-runs/'.rawurlencode($runId).'/abort', [
+            'deadline' => microtime(true) + $this->config->timeout,
+            'run_id' => $runId,
+        ])->wait();
     }
 
     /** Exception of a failed, aborted or timed-out run; the message adds the Actor's own reason when it has one. */
