@@ -9,7 +9,7 @@ use InvalidArgumentException;
 final readonly class Config
 {
     /**
-     * @param  int  $timeout  Maximum seconds to wait for each collector run to finish.
+     * @param  int  $timeout  Maximum seconds to wait for each collector run, run start and retries included.
      * @param  int|null  $runTimeout  Apify's own time limit of each collector run in seconds, sent as the `timeout`
      *                                query parameter of the run start (never on polling, abort or dataset requests).
      *                                Null = use `$timeout`, so the platform stops a run when the client has given

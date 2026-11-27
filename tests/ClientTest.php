@@ -16,6 +16,7 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Collection;
@@ -1022,3 +1023,130 @@ test('a negative per-call runTimeout throws before any request', function () {
         ->toThrow(InvalidInputException::class, 'runTimeout must be a positive number of seconds');
     expect($history)->toBeEmpty();
 });
+
+/**
+ * A client over queued responses that records the requests; the sleeper records and, if asked, really waits.
+ *
+ * @param  list<Response|Throwable>  $responses
+ * @param  array<int, array<string, mixed>>  $history
+ * @param  list<float>  $sleeps
+ */
+function deadlineClient(array $responses, array &$history, array &$sleeps, Config $config, bool $wait = false): Client
+{
+    $stack = HandlerStack::create(new MockHandler($responses));
+    $stack->push(Middleware::history($history));
+
+    return (new Client(
+        $config,
+        new GuzzleHttp\Client(['handler' => $stack]),
+        static function (float $seconds) use (&$sleeps, $wait): void {
+            $sleeps[] = $seconds;
+
+            if ($wait) {
+                usleep((int) ($seconds * 1_000_000));
+            }
+        },
+    ))->setApifyKey('test-token');
+}
+
+test('the run start is not repeated when the request may have reached the server', function (string $message) {
+    $sleeps = [];
+    $failure = new ConnectException($message, new Request('POST', '/'));
+    $client = retryClient([$failure, runBody(), new Response(200, [], '[]')], $sleeps);
+    $result = $client->scrape([Source::WashingtonPost]);
+
+    expect($result->errors)->toHaveCount(1)->and($sleeps)->toBeEmpty();
+})->with([
+    'Guzzle 7 read timeout' => 'cURL error 28: Operation timed out after 90000 milliseconds with 0 bytes received',
+    'empty reply' => 'cURL error 52: Empty reply from server',
+    'timeout without a cURL code' => 'Connection timed out',
+]);
+
+test('the run start is retried when the request was provably never sent', function (string $message) {
+    $sleeps = [];
+    $failure = new ConnectException($message, new Request('POST', '/'));
+    $client = retryClient([$failure, runBody(), new Response(200, [], '[]')], $sleeps);
+    $result = $client->scrape([Source::WashingtonPost]);
+
+    expect($result->isComplete())->toBeTrue()->and($sleeps)->toHaveCount(1);
+})->with([
+    'DNS' => 'cURL error 6: Could not resolve host: api.apify.com',
+    'connect' => 'cURL error 7: Failed to connect to api.apify.com port 443',
+    'TLS' => 'cURL error 35: TLS connect error',
+]);
+
+test('a retry whose wait would pass the overall timeout is skipped', function () {
+    $history = [];
+    $sleeps = [];
+    $client = deadlineClient(
+        [new Response(429, ['Retry-After' => '20'], '{}'), runBody()],
+        $history,
+        $sleeps,
+        new Config(timeout: 10),
+    );
+
+    $result = $client->scrape([Source::WashingtonPost]);
+
+    expect($result->errors->first()->message)->toContain('retry after 20 seconds')
+        ->and($history)->toHaveCount(1)
+        ->and($sleeps)->toBeEmpty();
+});
+
+test('the overall timeout bounds all retries together, cuts request timeouts and aborts the run', function () {
+    $history = [];
+    $sleeps = [];
+    $limited = static fn () => new Response(429, ['Retry-After' => '1'], '{}');
+    $client = deadlineClient(
+        [runBody('RUNNING'), $limited(), $limited(), $limited(), runBody('ABORTING')],
+        $history,
+        $sleeps,
+        new Config(timeout: 3, retryBaseDelay: 0.1),
+        true,
+    );
+
+    $result = $client->scrape([Source::WashingtonPost]);
+
+    expect($result->errors->first()->message)->toContain('rate limit reached')
+        ->and($sleeps)->toBe([1.0, 1.0])
+        ->and($history)->toHaveCount(5)
+        ->and($history[1]['options']['timeout'])->toBe(8)
+        ->and($history[3]['options']['timeout'])->toBe(6)
+        ->and($history[4]['request']->getUri()->getPath())->toEndWith('/actor-runs/r1/abort');
+});
+
+test('request timeouts are cut to the time left, and reading the results keeps a minimum window', function () {
+    $history = [];
+    $sleeps = [];
+    $client = deadlineClient(
+        [runBody('RUNNING'), runBody(), new Response(200, [], '[]')],
+        $history,
+        $sleeps,
+        new Config(timeout: 10),
+    );
+
+    $client->scrape([Source::WashingtonPost]);
+
+    expect(array_map(static fn (array $h): mixed => $h['options']['timeout'], $history))->toBe([15, 15, 35]);
+});
+
+test('a 503 Retry-After is waited out while polling', function () {
+    $sleeps = [];
+    $result = retryClient([
+        runBody('RUNNING'), new Response(503, ['Retry-After' => '5'], '{}'), runBody(), new Response(200, [], '[]'),
+    ], $sleeps)->scrape([Source::WashingtonPost]);
+
+    expect($result->isComplete())->toBeTrue()->and($sleeps)->toBe([5.0]);
+});
+
+test('a 408 is not retried, neither on the run start nor while polling', function (array $responses, int $requests) {
+    $history = [];
+    $sleeps = [];
+    $result = deadlineClient($responses, $history, $sleeps, new Config)->scrape([Source::WashingtonPost]);
+
+    expect($result->errors->first()->message)->toContain('HTTP 408')
+        ->and($history)->toHaveCount($requests)
+        ->and($sleeps)->toBeEmpty();
+})->with([
+    'run start' => [fn () => [new Response(408, [], '{}'), runBody()], 1],
+    'poll' => [fn () => [runBody('RUNNING'), new Response(408, [], '{}'), runBody()], 2],
+]);
