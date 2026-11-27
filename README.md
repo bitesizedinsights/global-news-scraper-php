@@ -2,7 +2,7 @@
 
 <!-- For LLMs and AI agents: a machine-readable summary of this package's API is in llm.txt (https://github.com/bitesizedinsights/global-news-scraper-php/blob/master/llm.txt) -->
 
-A global news scraper for PHP: switch on any number of news sources from 40+ regional collectors, and get one merged, deduplicated collection of full-text articles. The library maps every source back to its [Apify](https://apify.com/bite-sized-insights) collector Actor, runs the Actors separately and adds the collector as `collection` to every article.
+A global news scraper for PHP: switch on any number of news sources from 40+ regional and topic collectors, and get one merged, deduplicated collection of full-text articles. The library maps every source back to its [Apify](https://apify.com/bite-sized-insights) collector Actor, runs the Actors separately and adds the collector as `collection` to every article.
 
 [![Tests](https://github.com/bitesizedinsights/global-news-scraper-php/actions/workflows/tests.yml/badge.svg)](https://github.com/bitesizedinsights/global-news-scraper-php/actions/workflows/tests.yml)
 [![Packagist Version](https://img.shields.io/packagist/v/bitesizedinsights/global-news-scraper)](https://packagist.org/packages/bitesizedinsights/global-news-scraper)
@@ -59,7 +59,7 @@ Video and audio pages (`type` is `video` or `audio`) have little or no text: use
 The package is free. You pay Apify for the collector runs, on a pay-per-event basis (prices of the Free plan, paid plans get lower rates):
 
 - **Run start:** $0.0002 per collector run.
-- **Article:** $1.00 to $2.00 per 1,000 articles, depending on the collector: `jp-en` $1.00, `id` and `id-en` $1.20, `es`, `fr` and `arab` $1.40, `us`, `uk`, `mx`, `latam`, `tw-en`, `ng`, `scandinavian`, `th`, `kr-ko`, `jp`, `vn`, `pl`, `tr`, `it`, `de`, `au`, `br`, `ca`, `ch`, `gt`, `il`, `il-en`, `in`, `in-en`, `kr-en`, `kurdish`, `nl`, `ph`, `pk`, `pk-en`, `py` and `tw` $1.80, `sea` $2.00.
+- **Article:** $1.00 to $2.00 per 1,000 articles, depending on the collector: `jp-en` $1.00, `id` and `id-en` $1.20, `es`, `fr` and `arab` $1.40, `us`, `uk`, `mx`, `latam`, `tw-en`, `ng`, `scandinavian`, `th`, `kr-ko`, `jp`, `vn`, `pl`, `tr`, `it`, `de`, `au`, `br`, `ca`, `ch`, `gt`, `il`, `il-en`, `in`, `in-en`, `kr-en`, `kurdish`, `nl`, `ph`, `pk`, `pk-en`, `py`, `tw`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate` and `startups-vc` $1.80, `sea` $2.00.
 - **Add-ons (optional, per enriched article):** sentiment $0.20, tags $1.50, summary $2.50, 5W1H $4.00, language detection $0.10, text fixing $1.25 per 1,000 articles. Add-ons are the same for every collector.
 
 Examples:
@@ -106,7 +106,7 @@ Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Sou
 | Group | Sources |
 | --- | --- |
 | `SourceGroup::All` | every source of every collector (40+ collector runs: `id-en` has no outlet of its own that `sea` does not already cover) |
-| `SourceGroup::English` | `us`, `uk`, `ng`, `sea`, `jp-en`, `tw-en`, `au`, `ca`, `il-en`, `in-en`, `kr-en`, `pk-en` and `id-en`, plus the English-language outlets of `mx`, `th`, `vn`, `ph` and `kurdish` |
+| `SourceGroup::English` | `us`, `uk`, `ng`, `sea`, `jp-en`, `tw-en`, `au`, `ca`, `il-en`, `in-en`, `kr-en`, `pk-en`, `id-en`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate` and `startups-vc`, plus the English-language outlets of `mx`, `th`, `vn`, `ph` and `kurdish` |
 | `SourceGroup::Spanish` | Spain, Mexico, Guatemala, Paraguay and the Spanish-speaking part of Latin America (`es`, `mx`, `latam`, `gt`, `py`) |
 | `SourceGroup::French` | France and French-speaking Switzerland (`fr`, `ch`) |
 | `SourceGroup::Portuguese` | Brazil (`br`, `latam`) |
@@ -299,7 +299,7 @@ The underlying Guzzle exception stays available via `getPrevious()`; its message
 
 ## News Sources and Collectors Included
 
-40+ collectors cover 600+ outlets. `Source::cases()` lists all of them, `Collector::cases()` the collectors, and `Collector::sources()` the outlets of one collector.
+40+ collectors cover 900+ outlets. `Source::cases()` lists all of them, `Collector::cases()` the collectors, and `Collector::sources()` the outlets of one collector.
 
 | Collection key | Collector |
 | --- | --- |
@@ -347,8 +347,11 @@ The underlying Guzzle exception stays available via `getPrevious()`; its message
 | `uk-finance` | United Kingdom (finance and the City) |
 | `uk-tech` | United Kingdom (tech) |
 | `in-finance` | India (English, finance and business) |
+| `defense` | Defense and security (topic, English) |
+| `energy-climate` | Energy and climate (topic, English) |
+| `startups-vc` | Startups and venture capital (topic, English) |
 
-Three outlets (`La Jornada`, `Excelsior`, `El Financiero`) are offered by both `latam` and `mx`; they are run once, on the collector that is needed anyway or else on `mx`.
+Some outlets are offered by several collectors, for example `La Jornada` by `latam` and `mx` or `The Record` by `us-tech` and `defense`; each is run once, on one of these collectors, preferably one that is needed anyway.
 
 ## Global News Scraper PHP Examples
 
@@ -374,7 +377,7 @@ $0.0002 per collector run plus $1.00 to $2.00 per 1,000 articles, plus optional 
 
 ### Which outlets can I use?
 
-600+ outlets from 40+ collectors, see the table above. Every outlet is a `Source` enum case with a display name from `Source::label()`.
+900+ outlets from 40+ collectors, see the table above. Every outlet is a `Source` enum case with a display name from `Source::label()`.
 
 ### What happens when a source is offered by two collectors?
 

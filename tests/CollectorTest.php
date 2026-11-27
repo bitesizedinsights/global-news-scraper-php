@@ -2,18 +2,21 @@
 
 declare(strict_types=1);
 
+use GlobalNewsScraper\Client;
 use GlobalNewsScraper\Collector;
 use GlobalNewsScraper\Exception\ApiException;
 use GlobalNewsScraper\Exception\InvalidInputException;
 use GlobalNewsScraper\Exception\MissingApiKeyException;
 use GlobalNewsScraper\Exception\RateLimitException;
+use GlobalNewsScraper\Source;
+use GlobalNewsScraper\SourceGroup;
 
-test('there are 44 collectors with unique keys and actor IDs', function () {
+test('there are 47 collectors with unique keys and actor IDs', function () {
     $cases = Collector::cases();
 
-    expect($cases)->toHaveCount(44)
-        ->and(array_unique(array_map(fn (Collector $c) => $c->value, $cases)))->toHaveCount(44)
-        ->and(array_unique(array_map(fn (Collector $c) => $c->actorId(), $cases)))->toHaveCount(44);
+    expect($cases)->toHaveCount(47)
+        ->and(array_unique(array_map(fn (Collector $c) => $c->value, $cases)))->toHaveCount(47)
+        ->and(array_unique(array_map(fn (Collector $c) => $c->actorId(), $cases)))->toHaveCount(47);
 });
 
 test('collector maps to its Apify actor', function () {
@@ -22,6 +25,22 @@ test('collector maps to its Apify actor', function () {
         ->and(Collector::JpEn->actorName())->toBe('news-collector-jp-en')
         ->and(Collector::tryFrom('xx'))->toBeNull();
 });
+
+test('topic collectors map to their Apify actors and offer English sources', function (
+    Collector $collector,
+    string $slug,
+    Source $source,
+) {
+    expect($collector->actorId())->toBe("bite-sized-insights/{$slug}")
+        ->and($collector->isRegional())->toBeFalse()
+        ->and($collector->sources())->toContain($source)
+        ->and($source->language())->toBe(SourceGroup::English)
+        ->and((new Client)->plan($source)[0]->collector)->toBe($collector);
+})->with([
+    'defense' => [Collector::Defense, 'defense-news-scraper', Source::BreakingDefense],
+    'energy-climate' => [Collector::EnergyClimate, 'energy-climate-news-scraper', Source::CarbonBrief],
+    'startups-vc' => [Collector::StartupsVc, 'startup-vc-news-scraper', Source::CrunchbaseNews],
+]);
 
 test('regional collectors are flagged', function () {
     $regional = array_filter(Collector::cases(), fn (Collector $c) => $c->isRegional());

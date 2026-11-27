@@ -60,6 +60,9 @@ final class SourceLanguages
         'uk-tech' => SourceGroup::English,
         'us-finance' => SourceGroup::English,
         'us-tech' => SourceGroup::English,
+        'defense' => SourceGroup::English,
+        'energy-climate' => SourceGroup::English,
+        'startups-vc' => SourceGroup::English,
     ];
 
     /** @var array<string, SourceGroup> */

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace GlobalNewsScraper;
 
 /**
- * A regional news collector Actor. The value is the collector key that ends up in `Article::$collection`.
+ * A regional or topic news collector Actor. The value is the collector key that ends up in `Article::$collection`.
  */
 enum Collector: string
 {
@@ -53,6 +53,9 @@ enum Collector: string
     case UkTech = 'uk-tech';
     case UsFinance = 'us-finance';
     case UsTech = 'us-tech';
+    case Defense = 'defense';
+    case EnergyClimate = 'energy-climate';
+    case StartupsVc = 'startups-vc';
 
     /**
      * Public Apify Actor ID (`username/name`).
@@ -104,6 +107,9 @@ enum Collector: string
             self::UkTech => 'uk-tech-news-scraper',
             self::UsFinance => 'us-stock-market-news-scraper',
             self::UsTech => 'us-tech-news-scraper',
+            self::Defense => 'defense-news-scraper',
+            self::EnergyClimate => 'energy-climate-news-scraper',
+            self::StartupsVc => 'startup-vc-news-scraper',
         };
     }
 
