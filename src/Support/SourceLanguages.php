@@ -63,6 +63,9 @@ final class SourceLanguages
         'defense' => SourceGroup::English,
         'energy-climate' => SourceGroup::English,
         'startups-vc' => SourceGroup::English,
+        'supply-chain' => SourceGroup::English,
+        'biopharma' => SourceGroup::English,
+        'insurance' => SourceGroup::English,
     ];
 
     /** @var array<string, SourceGroup> */

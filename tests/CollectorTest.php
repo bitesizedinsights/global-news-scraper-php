@@ -11,12 +11,12 @@ use GlobalNewsScraper\Exception\RateLimitException;
 use GlobalNewsScraper\Source;
 use GlobalNewsScraper\SourceGroup;
 
-test('there are 47 collectors with unique keys and actor IDs', function () {
+test('there are 50 collectors with unique keys and actor IDs', function () {
     $cases = Collector::cases();
 
-    expect($cases)->toHaveCount(47)
-        ->and(array_unique(array_map(fn (Collector $c) => $c->value, $cases)))->toHaveCount(47)
-        ->and(array_unique(array_map(fn (Collector $c) => $c->actorId(), $cases)))->toHaveCount(47);
+    expect($cases)->toHaveCount(50)
+        ->and(array_unique(array_map(fn (Collector $c) => $c->value, $cases)))->toHaveCount(50)
+        ->and(array_unique(array_map(fn (Collector $c) => $c->actorId(), $cases)))->toHaveCount(50);
 });
 
 test('collector maps to its Apify actor', function () {
@@ -40,6 +40,9 @@ test('topic collectors map to their Apify actors and offer English sources', fun
     'defense' => [Collector::Defense, 'defense-news-scraper', Source::BreakingDefense],
     'energy-climate' => [Collector::EnergyClimate, 'energy-climate-news-scraper', Source::CarbonBrief],
     'startups-vc' => [Collector::StartupsVc, 'startup-vc-news-scraper', Source::CrunchbaseNews],
+    'supply-chain' => [Collector::SupplyChain, 'supply-chain-news-scraper', Source::Splash247],
+    'biopharma' => [Collector::Biopharma, 'biotech-pharma-news-scraper', Source::Biospace],
+    'insurance' => [Collector::Insurance, 'insurtech-news-scraper', Source::InsuranceJournal],
 ]);
 
 test('regional collectors are flagged', function () {

@@ -59,7 +59,7 @@ Video and audio pages (`type` is `video` or `audio`) have little or no text: use
 The package is free. You pay Apify for the collector runs, on a pay-per-event basis (prices of the Free plan, paid plans get lower rates):
 
 - **Run start:** $0.0002 per collector run.
-- **Article:** $1.00 to $2.00 per 1,000 articles, depending on the collector: `jp-en` $1.00, `id` and `id-en` $1.20, `es`, `fr` and `arab` $1.40, `us`, `uk`, `mx`, `latam`, `tw-en`, `ng`, `scandinavian`, `th`, `kr-ko`, `jp`, `vn`, `pl`, `tr`, `it`, `de`, `au`, `br`, `ca`, `ch`, `gt`, `il`, `il-en`, `in`, `in-en`, `kr-en`, `kurdish`, `nl`, `ph`, `pk`, `pk-en`, `py`, `tw`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate` and `startups-vc` $1.80, `sea` $2.00.
+- **Article:** $1.00 to $2.00 per 1,000 articles, depending on the collector: `jp-en` $1.00, `id` and `id-en` $1.20, `es`, `fr` and `arab` $1.40, `us`, `uk`, `mx`, `latam`, `tw-en`, `ng`, `scandinavian`, `th`, `kr-ko`, `jp`, `vn`, `pl`, `tr`, `it`, `de`, `au`, `br`, `ca`, `ch`, `gt`, `il`, `il-en`, `in`, `in-en`, `kr-en`, `kurdish`, `nl`, `ph`, `pk`, `pk-en`, `py`, `tw`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate`, `startups-vc`, `supply-chain`, `biopharma` and `insurance` $1.80, `sea` $2.00.
 - **Add-ons (optional, per enriched article):** sentiment $0.20, tags $1.50, summary $2.50, 5W1H $4.00, language detection $0.10, text fixing $1.25 per 1,000 articles. Add-ons are the same for every collector.
 
 Examples:
@@ -106,7 +106,7 @@ Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Sou
 | Group | Sources |
 | --- | --- |
 | `SourceGroup::All` | every source of every collector (40+ collector runs: `id-en` has no outlet of its own that `sea` does not already cover) |
-| `SourceGroup::English` | `us`, `uk`, `ng`, `sea`, `jp-en`, `tw-en`, `au`, `ca`, `il-en`, `in-en`, `kr-en`, `pk-en`, `id-en`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate` and `startups-vc`, plus the English-language outlets of `mx`, `th`, `vn`, `ph` and `kurdish` |
+| `SourceGroup::English` | `us`, `uk`, `ng`, `sea`, `jp-en`, `tw-en`, `au`, `ca`, `il-en`, `in-en`, `kr-en`, `pk-en`, `id-en`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate`, `startups-vc`, `supply-chain`, `biopharma` and `insurance`, plus the English-language outlets of `mx`, `th`, `vn`, `ph` and `kurdish` |
 | `SourceGroup::Spanish` | Spain, Mexico, Guatemala, Paraguay and the Spanish-speaking part of Latin America (`es`, `mx`, `latam`, `gt`, `py`) |
 | `SourceGroup::French` | France and French-speaking Switzerland (`fr`, `ch`) |
 | `SourceGroup::Portuguese` | Brazil (`br`, `latam`) |
@@ -350,6 +350,9 @@ The underlying Guzzle exception stays available via `getPrevious()`; its message
 | `defense` | Defense and security (topic, English) |
 | `energy-climate` | Energy and climate (topic, English) |
 | `startups-vc` | Startups and venture capital (topic, English) |
+| `supply-chain` | Supply chain, logistics and shipping (topic, English) |
+| `biopharma` | Biotech, pharma and healthcare (topic, English) |
+| `insurance` | Insurance and reinsurance (topic, English) |
 
 Some outlets are offered by several collectors, for example `La Jornada` by `latam` and `mx` or `The Record` by `us-tech` and `defense`; each is run once, on one of these collectors, preferably one that is needed anyway.
 
