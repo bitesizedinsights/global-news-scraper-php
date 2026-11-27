@@ -173,6 +173,19 @@ $result = $client->scrape(
 );
 ```
 
+### Publication Date as a PHP Date
+
+`Article::$datePublish` is the Actor's string: ISO 8601 as the article page states it, often without a time zone (`2026-02-15T10:30:00`), sometimes with one (`2026-02-15T10:30:00+09:00`), or null. `publishedAt()` returns it as a `?DateTimeImmutable`:
+
+```php
+$article->publishedAt();                                  // offset kept; without one the time is read as UTC
+$article->publishedAt(new DateTimeZone('Asia/Tokyo'));    // zone for values without an offset only
+```
+
+- It accepts only complete ISO 8601 dates: `YYYY-MM-DD`, optionally followed by `T` or a space and `HH:MM[:SS[.ffffff]]`, optionally followed by `Z` or an offset (`+09:00`, `+0900`, `+09`, -14:00 to +14:00). A date without a time is midnight. Digits after the sixth decimal of a second are cut off.
+- Everything else gives null instead of a guess: empty strings, relative phrases (`yesterday`, `2 hours ago`), free text, ambiguous forms (`02/03/2026`), time zone abbreviations (`EST`) and impossible values (`2026-02-30`, `25:00`).
+- A value without an offset does not say which zone it means, so sorting or filtering across outlets can be off by up to a day.
+
 ## How to Limit the Number of News Articles in PHP
 
 `limit` is the maximum number of articles per collector run (0 to 10000, 0 means unlimited; a negative value or more than 10000 throws `InvalidInputException` before any request, as the Actors reject it). Without it the Actor default of 100 applies. The limit counts for each run, not for the merged result: two collectors with `limit: 10` return up to 20 articles. Filters such as `searchQuery` can make an Actor process more articles than it returns.

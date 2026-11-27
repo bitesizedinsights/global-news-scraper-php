@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace GlobalNewsScraper\DTO;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use GlobalNewsScraper\ArticleType;
 use GlobalNewsScraper\DTO\Enrichment\DetectedLanguage;
 use GlobalNewsScraper\DTO\Enrichment\FiveW1h;
@@ -11,6 +13,7 @@ use GlobalNewsScraper\DTO\Enrichment\FixedText;
 use GlobalNewsScraper\DTO\Enrichment\Sentiment;
 use GlobalNewsScraper\DTO\Enrichment\Summary;
 use GlobalNewsScraper\DTO\Enrichment\Tags;
+use GlobalNewsScraper\Support\ArticleDate;
 use GlobalNewsScraper\Support\Lenient;
 use GlobalNewsScraper\Support\Value;
 use InvalidArgumentException;
@@ -134,6 +137,20 @@ final readonly class Article implements JsonSerializable
             || $this->fiveW1h !== null
             || $this->detectedLanguage !== null
             || $this->fixedText !== null;
+    }
+
+    /**
+     * `$datePublish` as a date. The Actors send ISO 8601, with or without a UTC offset, as the page states it.
+     * Null when there is no date, or for anything but a complete ISO 8601 date (`2026-02-15`, or with a time such as
+     * `2026-02-15T10:30:00.5+09:00`): empty, relative, free-text, ambiguous (`02/03/2026`, `10:30 EST`) and
+     * impossible dates (`2026-02-30`).
+     *
+     * A value with an offset or `Z` keeps it. A value without one is read as wall-clock time in `$assumedTimeZone`,
+     * UTC when null: the real zone is not known, so such a date can be off by up to a day.
+     */
+    public function publishedAt(?DateTimeZone $assumedTimeZone = null): ?DateTimeImmutable
+    {
+        return $this->datePublish === null ? null : ArticleDate::parse($this->datePublish, $assumedTimeZone);
     }
 
     /** Typed `$sentiment`; null without a result or with an unknown shape. */
