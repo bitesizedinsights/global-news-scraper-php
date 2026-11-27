@@ -56,7 +56,7 @@ Video and audio pages (`type` is `video` or `audio`) have little or no text: use
 
 ## Global News Scraper Pricing: Cost per Article
 
-The package is free. You pay Apify for the collector runs, on a pay-per-event basis (prices of the Free plan, paid plans get lower rates):
+The package is free. You pay Apify for the collector runs, on a pay-per-event basis (prices of the Free plan; the article and add-on prices of paid plans are lower: Bronze 5%, Silver 15%, Gold, Platinum and Diamond 35%):
 
 - **Run start:** $0.0002 per collector run.
 - **Article:** $1.00 to $2.00 per 1,000 articles, depending on the collector: `jp-en` $1.00, `id` and `id-en` $1.20, `es`, `fr` and `arab` $1.40, `us`, `uk`, `mx`, `latam`, `tw-en`, `ng`, `scandinavian`, `th`, `kr-ko`, `jp`, `vn`, `pl`, `tr`, `it`, `de`, `au`, `br`, `ca`, `ch`, `il`, `il-en`, `in`, `in-en`, `kr-en`, `nl`, `ph`, `tw`, `us-finance`, `us-tech`, `uk-finance`, `uk-tech`, `in-finance`, `defense`, `energy-climate`, `startups-vc`, `supply-chain`, `biopharma`, `insurance`, `marketing` and `sports-business` $1.80, `sea` $2.00.
@@ -68,6 +68,39 @@ Examples:
 - 50 articles each from `us`, `uk` and `jp-en` (three runs): 3 × $0.0002 + 50 × ($0.0018 + $0.0018 + $0.0010) = $0.2306. With sentiment and summary on all 150 articles: + 150 × ($0.0002 + $0.0025) = $0.6356 in total.
 
 Free-plan users get 5 runs in total, each returning at most 10 articles; test runs in the Apify Console have the same cap.
+
+### Estimate the Cost of a Run Plan in PHP
+
+`CostEstimator::estimate()` calculates the upper bound of a plan (a `RunPlan` or the list of `plan()`) without any request:
+
+```php
+use GlobalNewsScraper\CostEstimator;
+use GlobalNewsScraper\PricingTier;
+
+$plan = $client->plan([Source::NewYorkTimes, Source::BbcNews, Source::NikkeiAsia]);
+
+$estimate = CostEstimator::estimate($plan, limit: 50, withSentiment: true, withSummary: true);
+
+$estimate->runs;          // 3
+$estimate->startFeesUsd;  // 0.0006
+$estimate->maxArticles;   // 150
+$estimate->maxTotalUsd;   // 0.6356
+
+CostEstimator::estimate($plan, limit: 50, tier: PricingTier::Gold)->maxTotalUsd; // 0.1501
+CostEstimator::estimate($plan, limit: 0)->maxTotalUsd;                          // null: unlimited, no upper bound
+```
+
+| `CostEstimate` property | Meaning |
+| --- | --- |
+| `tier`, `runs` | Tier the prices are for (default `PricingTier::Free`) and number of collector runs; every plan item counts as one |
+| `startFeesUsd` | Start fees of all runs, due even without any article |
+| `maxArticles` | Runs times limit |
+| `maxArticlesUsd`, `maxAddOnsUsd`, `maxTotalUsd` | Article price, add-on price and total (with start fees) for `maxArticles` |
+| `isBounded()` | False with `limit: 0` (unlimited): then the four `max...` values are null (an empty plan always costs 0) |
+
+`limit` and the `with...` arguments work like those of `scrape()`: without `limit` the Actor default of 100 per run is used, and an invalid limit throws `InvalidInputException`.
+
+**It is an estimate, not a quote.** The prices are built into this library version and can differ from the current ones on Apify. Pick the tier of your Apify account yourself (`Free`, `Bronze`, `Silver`, `Gold`, `Platinum`, `Diamond`); the library does not look it up. The upper bound assumes that every run returns `limit` articles and every requested add-on succeeds on each of them; add-ons are only billed where they succeed, text fixing only for repaired articles, and 5W1H skips texts under 50 characters. The free-plan cap of 10 articles per run is not applied. Credits, further discounts and other charges of your account are not covered, and neither are runs you repeat.
 
 Check the Actor pages on [Apify](https://apify.com/bite-sized-insights) for current prices. [Run the collectors on Apify](https://console.apify.com/sign-up) with the free monthly credit.
 
