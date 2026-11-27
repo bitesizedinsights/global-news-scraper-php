@@ -19,6 +19,8 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- Async API: `Client::start()` starts the collector runs of `scrape()` and returns a `RunBatch` of `Run` handles (Apify run IDs) without waiting; `Client::getRun()` looks one run up, `Client::wait()` waits for several runs (never aborts) and `Client::results()` returns their articles as a `ScrapeResult`, merged and deduplicated like the one of `scrape()`. A failed start keeps the handles of the other runs and a start that may have reached Apify is never repeated. Bare run IDs are matched to their collector through the run's Actor. New: `DTO\Run`, `DTO\RunBatch` and the `RunStatus` enum.
+- `Client::abort()` also accepts a `Run` handle. Behavior change: a run ID with characters no Apify ID has now throws `InvalidInputException` without a request.
 - `defense` collector (defense and security, English), `energy-climate` collector (energy and climate, English) and `startups-vc` collector (startups and venture capital, English).
 - `supply-chain` collector (supply chain, logistics and shipping, English), `biopharma` collector (biotech, pharma and healthcare, English) and `insurance` collector (insurance and reinsurance, English).
 - `us-finance`, `us-tech`, `uk-finance`, `uk-tech` and `in-finance` collectors (finance and tech, English).

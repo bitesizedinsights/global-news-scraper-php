@@ -7,6 +7,6 @@ namespace GlobalNewsScraper\Exception;
 use InvalidArgumentException;
 
 /**
- * Thrown before any request is sent when the sources or an option are invalid.
+ * Thrown before any request is sent when the sources, an option or a run ID are invalid.
  */
 class InvalidInputException extends InvalidArgumentException {}

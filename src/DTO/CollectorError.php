@@ -10,9 +10,10 @@ use InvalidArgumentException;
 use JsonSerializable;
 
 /**
- * A collector run that failed. The other collectors' articles are still returned. `runId` is the Apify run when
- * known, so it can be inspected or passed to `Client::abort()`. `statusMessage` is the Actor's own reason of a failed
- * run when it gave one (already part of `message`, capped at 500 characters there).
+ * A collector run that failed, was not started or has no results yet. The other collectors' articles are still
+ * returned. `runId` is the Apify run when known, so it can be inspected or passed to `Client::abort()`.
+ * `statusMessage` is the Actor's own reason of a failed run when it gave one (already part of `message`, capped at
+ * 500 characters there).
  */
 final readonly class CollectorError implements JsonSerializable
 {

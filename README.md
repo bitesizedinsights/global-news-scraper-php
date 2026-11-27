@@ -226,9 +226,52 @@ foreach ($result->errors as $error) {
 }
 ```
 
+## How to Start News Scraper Runs and Collect the Results Later (Async API)
+
+`scrape()` blocks until every collector run has finished. To start the runs, keep their Apify run IDs and read the articles later (a queue job, a cron job, a web request), use `start()`, `wait()` and `results()`:
+
+```php
+use GlobalNewsScraper\DTO\RunBatch;
+
+// Process 1: start the runs (same arguments as scrape()) and store the handles at once
+$batch = $client->start([Source::NewYorkTimes, Source::BbcNews, Source::TaipeiTimes], limit: 20);
+file_put_contents('runs.json', json_encode($batch));
+
+foreach ($batch->errors as $error) {
+    echo "{$error->collector->value} was not started: {$error->message}\n";
+}
+
+// Process 2, any time later
+$batch = RunBatch::fromArray(json_decode(file_get_contents('runs.json'), true));
+$batch = $client->wait($batch, timeout: 300);
+
+if ($batch->isFinished()) {
+    $result = $client->results($batch); // a ScrapeResult, merged and deduplicated like the one of scrape()
+}
+```
+
+| Method | What it does |
+| --- | --- |
+| `start(...): RunBatch` | Starts the runs of `plan()` and returns at once. `$batch->runs` holds one `Run` handle per started run (`collector`, `id`, `status`, `defaultDatasetId`, `startedAt`, `finishedAt`, `statusMessage`), `$batch->errors` one `CollectorError` per collector without a handle. `$batch->runIds()` lists the IDs. |
+| `getRun(Run\|string $run): Run` | Looks one run up once, without waiting. |
+| `wait($runs, ?int $timeout = null): RunBatch` | Waits until all runs are final or the timeout expires and returns the updated handles. |
+| `results($runs): ScrapeResult` | Reads the articles of the successful runs. Does not wait. |
+| `abort(Run\|string $run): void` | Stops one run. |
+
+`wait()` and `results()` take a `RunBatch`, one `Run` or run ID, or an array or collection of handles and IDs; a run given twice is used once.
+
+- **Starting:** a failed start does not throw and never costs you the IDs of the runs that were started. The library never repeats a start that may have reached Apify (it only repeats one after a 429 or a connection failure that shows the request was not sent). After a server error, a timeout or an unreadable answer the run may exist although no handle came back: check Apify Console before you start that collector again. To retry, pass the sources of the failed collectors (see `plan()`) to `start()`.
+- **Spending limit:** after the first HTTP 402 no further run is started; the other collectors are listed in `$batch->errors` (`Not started: ...`) next to the handles of the started runs. `start()` throws `SpendingLimitException` only when not a single run was started.
+- **Concurrency:** `Config::$maxConcurrency` limits how many requests `start()`, `wait()` and `results()` send at the same time. It does not limit the runs: everything `start()` started executes at once on Apify and on the shared news backend. Start big selections in portions, or use `scrape()`.
+- **Run time limit:** a started run gets the same Apify time limit as in `scrape()`, by default `Config::$timeout` (900 s). Change it with `runTimeout` (see [Run Timeout](#run-timeout)).
+- **Waiting:** `timeout` is for all runs together, in seconds (null = `Config::$timeout`, 0 = look each unfinished run up once). `wait()` never aborts a run and does not throw when a run fails or the time is up: check `$batch->isFinished()` and `$batch->isSuccessful()`, and call it again if needed. A run that cannot be read keeps its last known state and gets the reason in `$run->lookupError`; it is not asked again in that call, while the others are still waited for. After the timeout each run not looked up yet is looked up once without waiting, so the call can take somewhat longer than `timeout`.
+- **Results:** only successful runs have articles. A failed, aborted or timed-out run, an unfinished run (`Actor run is not finished (status RUNNING): ...`) and a run or dataset that cannot be read become a `CollectorError` with the run ID, next to the start errors of the batch, so `isComplete()` is only true when nothing is missing. `results()` never aborts a run and can be called again. Like `scrape()`, it throws `SpendingLimitException` only when HTTP 402 stopped the reading and no article was read.
+- **Bare run IDs:** if you stored only the ID, `getRun()`, `wait()` and `results()` identify the collector with an extra request for the run's Actor, and throw `ApiException` for an unknown run (HTTP 404, code 404) and for a run that does not belong to a collector Actor of this library. Storing the handles (`json_encode($batch)`) avoids that request; the collector of a stored handle is taken as it is, so only restore handles you saved yourself.
+- **Invalid IDs:** a run ID with characters no Apify ID has (such as `/`, `.`, `?` or `#`) throws `InvalidInputException` before any request; `wait()` and `results()` check all IDs first.
+
 ## Store and Restore News Articles
 
-`Article`, `ScrapeResult`, `CollectorError` and `RunPlan` implement `JsonSerializable` and have `toArray()` and `fromArray()`. An article uses the Actor's field names (`article_title`, `date_publish`, `source_domain`, ...) plus `collection`, so `fromArray()` restores an equal object:
+`Article`, `ScrapeResult`, `CollectorError`, `RunPlan`, `Run` and `RunBatch` implement `JsonSerializable` and have `toArray()` and `fromArray()`. An article uses the Actor's field names (`article_title`, `date_publish`, `source_domain`, ...) plus `collection`, so `fromArray()` restores an equal object:
 
 ```php
 $json = json_encode($result);                            // database column, cache, queue payload
@@ -264,7 +307,7 @@ $client->scrape(Source::BbcNews, runTimeout: 300);
 
 ### Aborting Runs
 
-When `timeout` expires, every collector run that is still pending is aborted with `POST /actor-runs/{id}/abort` (own request timeout of at most 10 seconds, no retries). A failing abort never hides the timeout: the error then keeps the plain message without `and was aborted`. Runs that ended as FAILED, ABORTED or TIMED-OUT never trigger an abort, and rate limits and connection errors only when they use up `timeout` while polling (see Retries and Backoff). `ApiException::$runId` carries the run ID when known. When a run ends as FAILED, ABORTED or TIMED-OUT and the Actor reported a `statusMessage`, the message reads `Actor run ended with status FAILED: <reason>` (control characters stripped, at most 500 characters) and the raw reason (at most 2000 characters) is available as `$e->statusMessage` on `ApiException` and as `$error->statusMessage` on `CollectorError` (null when the Actor gave none; `toArray()` emits it only when set). The run ID is `$e->runId` or `$error->runId`. To stop a run yourself, call `$client->abort($runId)` (throws `ApiException`, `RateLimitException` or `SpendingLimitException`).
+When `timeout` expires, every collector run that is still pending is aborted with `POST /actor-runs/{id}/abort` (own request timeout of at most 10 seconds, no retries). A failing abort never hides the timeout: the error then keeps the plain message without `and was aborted`. Runs that ended as FAILED, ABORTED or TIMED-OUT never trigger an abort, and rate limits and connection errors only when they use up `timeout` while polling (see Retries and Backoff). `ApiException::$runId` carries the run ID when known. When a run ends as FAILED, ABORTED or TIMED-OUT and the Actor reported a `statusMessage`, the message reads `Actor run ended with status FAILED: <reason>` (control characters stripped, at most 500 characters) and the raw reason (at most 2000 characters) is available as `$e->statusMessage` on `ApiException` and as `$error->statusMessage` on `CollectorError` (null when the Actor gave none; `toArray()` emits it only when set). The run ID is `$e->runId` or `$error->runId`. To stop a run yourself, call `$client->abort($runId)` with the ID or a `Run` handle (throws `ApiException`, `RateLimitException` or `SpendingLimitException`, and `InvalidInputException` for a malformed ID).
 
 ### Retries and Backoff
 
