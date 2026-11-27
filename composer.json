@@ -1,6 +1,6 @@
 {
     "name": "bitesizedinsights/global-news-scraper",
-    "description": "Global news scraper PHP client: full-text articles from 300+ news sources via Apify, merged into typed DTOs.",
+    "description": "Global news scraper PHP client: full-text articles from 1,000+ news sources via Apify, merged into typed DTOs.",
     "type": "library",
     "license": "MIT",
     "keywords": [

@@ -59,6 +59,8 @@ enum Collector: string
     case SupplyChain = 'supply-chain';
     case Biopharma = 'biopharma';
     case Insurance = 'insurance';
+    case Marketing = 'marketing';
+    case SportsBusiness = 'sports-business';
 
     /**
      * Public Apify Actor ID (`username/name`).
@@ -116,6 +118,8 @@ enum Collector: string
             self::SupplyChain => 'supply-chain-news-scraper',
             self::Biopharma => 'biotech-pharma-news-scraper',
             self::Insurance => 'insurtech-news-scraper',
+            self::Marketing => 'adtech-martech-news-scraper',
+            self::SportsBusiness => 'sports-business-news-scraper',
         };
     }
 

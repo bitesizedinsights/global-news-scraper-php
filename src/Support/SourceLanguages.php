@@ -66,6 +66,8 @@ final class SourceLanguages
         'supply-chain' => SourceGroup::English,
         'biopharma' => SourceGroup::English,
         'insurance' => SourceGroup::English,
+        'marketing' => SourceGroup::English,
+        'sports-business' => SourceGroup::English,
     ];
 
     /** @var array<string, SourceGroup> */

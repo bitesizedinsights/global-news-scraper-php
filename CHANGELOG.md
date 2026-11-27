@@ -26,6 +26,7 @@ All notable changes to this project are documented in this file. The format is b
 - `Client::abort()` also accepts a `Run` handle. Behavior change: a run ID with characters no Apify ID has now throws `InvalidInputException` without a request.
 - `defense` collector (defense and security, English), `energy-climate` collector (energy and climate, English) and `startups-vc` collector (startups and venture capital, English).
 - `supply-chain` collector (supply chain, logistics and shipping, English), `biopharma` collector (biotech, pharma and healthcare, English) and `insurance` collector (insurance and reinsurance, English).
+- `marketing` collector (marketing, advertising and adtech, English) and `sports-business` collector (sports business and esports, English).
 - `us-finance`, `us-tech`, `uk-finance`, `uk-tech` and `in-finance` collectors (finance and tech, English).
 - `ApiException::$responseBody` (`?string`, last optional constructor parameter, also on `RateLimitException` and `SpendingLimitException`): the raw response body, control characters stripped and capped at 2000 characters, null without a body.
 - `SpendingLimitException` (extends `ApiException`) for Apify HTTP 402 (usage or spending limit reached): code 402, `$errorType` with the Apify error type, never retried. `scrape()` stops starting collector runs after the first 402 and returns partial results with `CollectorError` entries when any article was collected; it throws the exception only when none was.
