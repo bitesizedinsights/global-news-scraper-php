@@ -5,6 +5,13 @@ declare(strict_types=1);
 namespace GlobalNewsScraper\DTO;
 
 use GlobalNewsScraper\ArticleType;
+use GlobalNewsScraper\DTO\Enrichment\DetectedLanguage;
+use GlobalNewsScraper\DTO\Enrichment\FiveW1h;
+use GlobalNewsScraper\DTO\Enrichment\FixedText;
+use GlobalNewsScraper\DTO\Enrichment\Sentiment;
+use GlobalNewsScraper\DTO\Enrichment\Summary;
+use GlobalNewsScraper\DTO\Enrichment\Tags;
+use GlobalNewsScraper\Support\Lenient;
 use GlobalNewsScraper\Support\Value;
 use InvalidArgumentException;
 use JsonSerializable;
@@ -20,6 +27,9 @@ final readonly class Article implements JsonSerializable
      * @param  array<mixed>|null  $fiveW1h  Set when 5W1H was requested and succeeded.
      * @param  array<mixed>|null  $detectedLanguage  Set when language detection was requested and succeeded.
      * @param  array<mixed>|null  $fixedText  Set when text fixing was requested and succeeded.
+     * @param  string|null  $error  Deprecated: reserved by the Actors and always null; failed articles are left out
+     *                              of the dataset and failed runs are in `ScrapeResult::$errors`. Kept for
+     *                              compatibility.
      */
     public function __construct(
         public string $url,
@@ -63,12 +73,12 @@ final readonly class Article implements JsonSerializable
             imageUrl: Value::nullableString($data, 'image_url'),
             sourceDomain: Value::nullableString($data, 'source_domain') ?? '',
             type: $type === null ? ArticleType::Article : self::type($type),
-            sentiment: Value::nullableArray($data, 'sentiment'),
-            tags: Value::nullableArray($data, 'tags'),
-            summary: Value::nullableArray($data, 'summary'),
-            fiveW1h: Value::nullableArray($data, 'five_w1h'),
-            detectedLanguage: Value::nullableArray($data, 'detected_language'),
-            fixedText: Value::nullableArray($data, 'fixed_text'),
+            sentiment: Lenient::array($data['sentiment'] ?? null),
+            tags: Lenient::array($data['tags'] ?? null),
+            summary: Lenient::array($data['summary'] ?? null),
+            fiveW1h: Lenient::array($data['five_w1h'] ?? null),
+            detectedLanguage: Lenient::array($data['detected_language'] ?? null),
+            fixedText: Lenient::array($data['fixed_text'] ?? null),
             error: Value::nullableString($data, 'error'),
         );
     }
@@ -124,6 +134,42 @@ final readonly class Article implements JsonSerializable
             || $this->fiveW1h !== null
             || $this->detectedLanguage !== null
             || $this->fixedText !== null;
+    }
+
+    /** Typed `$sentiment`; null without a result or with an unknown shape. */
+    public function sentimentResult(): ?Sentiment
+    {
+        return $this->sentiment === null ? null : Sentiment::tryFromArray($this->sentiment);
+    }
+
+    /** Typed `$tags`; null without a result or with an unknown shape. */
+    public function tagsResult(): ?Tags
+    {
+        return $this->tags === null ? null : Tags::tryFromArray($this->tags);
+    }
+
+    /** Typed `$summary`; null without a result or with an unknown shape. */
+    public function summaryResult(): ?Summary
+    {
+        return $this->summary === null ? null : Summary::tryFromArray($this->summary);
+    }
+
+    /** Typed `$fiveW1h`; null without a result or with an unknown shape. */
+    public function fiveW1hResult(): ?FiveW1h
+    {
+        return $this->fiveW1h === null ? null : FiveW1h::tryFromArray($this->fiveW1h);
+    }
+
+    /** Typed `$detectedLanguage`; null without a result or with an unknown shape. */
+    public function detectedLanguageResult(): ?DetectedLanguage
+    {
+        return $this->detectedLanguage === null ? null : DetectedLanguage::tryFromArray($this->detectedLanguage);
+    }
+
+    /** Typed `$fixedText`; null without a result or with an unknown shape. */
+    public function fixedTextResult(): ?FixedText
+    {
+        return $this->fixedText === null ? null : FixedText::tryFromArray($this->fixedText);
     }
 
     private static function type(string $type): ArticleType

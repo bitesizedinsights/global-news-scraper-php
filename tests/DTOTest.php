@@ -33,13 +33,15 @@ test('article maps a full dataset item and carries the collection', function () 
 test('article maps enrichment objects as raw arrays', function () {
     $article = Article::fromArray(loadFixture('article_enriched'), 'uk');
 
+    $raw = loadFixture('article_enriched');
+
     expect($article->authors)->toBe(['Reporter One', 'Reporter Two'])
-        ->and($article->sentiment)->toBe(['sentiment' => 'positive'])
-        ->and($article->tags)->toBe(['tags' => ['politics']])
-        ->and($article->summary)->toBe(['summary' => 'Short summary.'])
-        ->and($article->fiveW1h)->toBe(['who' => 'Example'])
-        ->and($article->detectedLanguage)->toBe(['language' => 'en'])
-        ->and($article->fixedText)->toBe(['text' => 'Body text of the example article.'])
+        ->and($article->sentiment)->toBe($raw['sentiment'])
+        ->and($article->tags)->toBe($raw['tags'])
+        ->and($article->summary)->toBe($raw['summary'])
+        ->and($article->fiveW1h)->toBe($raw['five_w1h'])
+        ->and($article->detectedLanguage)->toBe($raw['detected_language'])
+        ->and($article->fixedText)->toBe($raw['fixed_text'])
         ->and($article->hasEnrichment())->toBeTrue();
 });
 
@@ -69,7 +71,6 @@ test('article rejects invalid fields', function (array $patch, string $message) 
     'authors not a list' => [['authors' => 'x'], "Field 'authors' must be an array of strings"],
     'author not a string' => [['authors' => [1]], "Field 'authors' must be an array of strings"],
     'unknown type' => [['type' => 'podcast'], "Field 'type' has unknown value 'podcast'"],
-    'sentiment not an object' => [['sentiment' => 'x'], "Field 'sentiment' must be an object or null"],
 ]);
 
 test('article type enum values', function () {

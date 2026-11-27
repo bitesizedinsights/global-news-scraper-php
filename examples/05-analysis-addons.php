@@ -25,10 +25,10 @@ $result = $client->scrape(
 
 foreach ($result->entries as $article) {
     echo "[{$article->collection}] {$article->title}\n";
-    echo '  sentiment: '.json_encode($article->sentiment)."\n";
-    echo '  tags: '.json_encode($article->tags)."\n";
-    echo '  summary: '.json_encode($article->summary)."\n";
-    echo '  5w1h: '.json_encode($article->fiveW1h)."\n";
-    echo '  detected language: '.json_encode($article->detectedLanguage)."\n";
-    echo '  fixed text: '.($article->fixedText === null ? 'not needed' : 'repaired')."\n";
+    echo '  sentiment: '.($article->sentimentResult()?->label->value ?? '-')."\n";
+    echo '  tags: '.implode(', ', $article->tagsResult()?->tags ?? [])."\n";
+    echo '  summary: '.($article->summaryResult()?->text ?? '-')."\n";
+    echo '  who: '.($article->fiveW1hResult()?->who?->answer ?? '-')."\n";
+    echo '  detected language: '.($article->detectedLanguageResult()?->language ?? '-')."\n";
+    echo '  fixed text: '.($article->fixedTextResult()?->changed === true ? 'repaired' : 'not needed')."\n";
 }

@@ -16,14 +16,20 @@ All notable changes to this project are documented in this file. The format is b
 - Retries now respect `Config::$timeout`, which covers the run start, the wait and all retries of each collector run: a retry whose wait would pass it is skipped, each request's timeout is cut to the time left plus 5 seconds (reading the results of a successful run keeps at least 30 seconds), and when polling fails because the time is used up the run is aborted (best effort).
 - `Retry-After` is now honoured on 503 responses too, not only on 429. One longer than `retryMaxDelay` is not waited out and the error is thrown.
 
+### Deprecated
+
+- `Article::$error`: the Actors reserve the field and always send null. It stays for compatibility; failed runs are in `ScrapeResult::$errors`.
+
 ### Changed
 
+- `Article::fromArray()` no longer throws when an add-on field is not an object or array; the field is read as null.
 - Exception messages no longer embed Guzzle's message, so they contain no request URL, query string or raw response body. They are built from the HTTP status and the Apify error `type` and `message` (`Apify API request failed (HTTP 502): type: message`, generic without a parsable body), transport failures read `Apify API request failed: connection error|timed out (ClassName)`, 429 reads `Apify API rate limit reached (retry after N seconds)` (before: `Rate limit exceeded`). `CollectorError` messages change accordingly (before: `API request failed with status 500: ...`).
 - A failed, aborted or timed-out run now reads `Actor run ended with status X: <statusMessage>` when the Actor reported a non-empty `statusMessage` (control characters stripped, capped at 500 characters); without one the message is unchanged.
 - Behavior change: starting a collector run now sends the Apify `timeout` query parameter, by default `Config::$timeout`, so the platform stops a run when the client has given up (before, the run kept the Actor's own limit, 900 s). Set `Config::$runTimeout = 0` to send nothing and keep the Actor default.
 
 ### Added
 
+- Typed add-on results: `Article::sentimentResult()`, `tagsResult()`, `summaryResult()`, `fiveW1hResult()`, `detectedLanguageResult()` and `fixedTextResult()` return objects of `DTO\Enrichment` (null without a result or with an unknown shape). The array properties and the serialized shape are unchanged.
 - `Results` helpers to count the articles of a `ScrapeResult`: `countsByCollector()` (with a plan also the collectors without articles) and `countsByDomain()`. `inputCount()`, `missingIndexes()` and `isComplete()` find the collector runs of `plan()` without an article, `failedCollectors()` and `emptyCollectors()` tell failed collectors from empty ones and `unprocessed()` returns the sources of the failed ones for another call (with a `RunBatch`, without runs that are unfinished or successful). There are no counts or matches per source: the dataset does not identify it.
 - Retry hook: an optional fourth `Client` constructor argument `$onRetry` receives a `DTO\RetryEvent` (method, path with masked IDs, retry number, delay, HTTP status or cURL error, `message()`; no token or query) before the wait of each retry, for logging. What it throws is ignored. The retry rules now live in one internal class, `Support\Retrier`.
 - Async API: `Client::start()` starts the collector runs of `scrape()` and returns a `RunBatch` of `Run` handles (Apify run IDs) without waiting; `Client::getRun()` looks one run up, `Client::wait()` waits for several runs (never aborts) and `Client::results()` returns their articles as a `ScrapeResult`, merged and deduplicated like the one of `scrape()`. A failed start keeps the handles of the other runs and a start that may have reached Apify is never repeated. Bare run IDs are matched to their collector through the run's Actor. New: `DTO\Run`, `DTO\RunBatch` and the `RunStatus` enum.

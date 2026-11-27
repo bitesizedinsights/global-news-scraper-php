@@ -6,6 +6,7 @@ use GlobalNewsScraper\ArticleType;
 use GlobalNewsScraper\Client;
 use GlobalNewsScraper\Collector;
 use GlobalNewsScraper\Config;
+use GlobalNewsScraper\DTO\Enrichment\SentimentLabel;
 use GlobalNewsScraper\Exception\ApiException;
 use GlobalNewsScraper\Exception\InvalidInputException;
 use GlobalNewsScraper\Exception\MissingApiKeyException;
@@ -512,9 +513,9 @@ test('enriched articles expose the analysis results', function () {
         ->entries->first();
 
     expect($article->hasEnrichment())->toBeTrue()
-        ->and($article->sentiment)->toBe(['sentiment' => 'positive'])
-        ->and($article->tags)->toBe(['tags' => ['politics']])
-        ->and($article->summary)->toBe(['summary' => 'Short summary.']);
+        ->and($article->sentimentResult()?->label)->toBe(SentimentLabel::Positive)
+        ->and($article->tagsResult()?->tags)->toBe(['Politics', 'Economy'])
+        ->and($article->summaryResult()?->text)->toBe('Short summary.');
 });
 
 test('all analysis add-ons can be combined and reach the article', function () {
@@ -540,9 +541,9 @@ test('all analysis add-ons can be combined and reach the article', function () {
         'with_5w1h' => true,
         'with_language_detection' => true,
         'with_fix_text' => true,
-    ])->and($article->fiveW1h)->toBe(['who' => 'Example'])
-        ->and($article->detectedLanguage)->toBe(['language' => 'en'])
-        ->and($article->fixedText)->toBe(['text' => 'Body text of the example article.']);
+    ])->and($article->fiveW1hResult()?->who?->answer)->toBe('Example Ministry')
+        ->and($article->detectedLanguageResult()?->language)->toBe('en')
+        ->and($article->fixedTextResult()?->text)->toBe('Body text of the example article.');
 });
 
 /**

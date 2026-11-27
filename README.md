@@ -197,7 +197,22 @@ Six optional add-ons enrich each article. They are billed per enriched article o
 | `withLanguageDetection` | `Article::$detectedLanguage` | $0.10 |
 | `withFixText` | `Article::$fixedText` | $1.25 (only for repaired articles) |
 
-The results are returned as decoded JSON objects (`?array`); they stay `null` unless the add-on was requested and succeeded. `Article::hasEnrichment()` tells whether any add-on result is present. `with5w1h` extracts who, what, when, where, why and how. `withLanguageDetection` detects the language from the text while `Article::$language` keeps the value declared by the source. `withFixText` returns repaired text such as fixed mojibake in `Article::$fixedText` while `Article::$text` stays unchanged.
+The array properties hold the decoded JSON objects as the Actor returns them (`?array`); they stay `null` unless the add-on was requested and succeeded. `Article::hasEnrichment()` tells whether any add-on result is present. `with5w1h` extracts who, what, when, where, why and how (only for texts of at least 50 characters). `withLanguageDetection` detects the language from the text while `Article::$language` keeps the value declared by the source. `withFixText` returns the repaired text, such as fixed mojibake, in `Article::$fixedText` while `Article::$text` stays unchanged; the result is also present when nothing needed repair (`changed` is false, not billed).
+
+### Typed Add-on Results
+
+For each array property there is an accessor returning a typed object (namespace `GlobalNewsScraper\DTO\Enrichment`):
+
+| Accessor | Object and properties |
+| --- | --- |
+| `sentimentResult()` | `Sentiment`: `label` (`SentimentLabel::Positive`, `Neutral` or `Negative`), `confidence`, `scores` (`SentimentScores`: `positive`, `neutral`, `negative`, `compound`), `method` |
+| `tagsResult()` | `Tags`: `tags` (list of strings, most relevant first), `model` |
+| `summaryResult()` | `Summary`: `text`, `originalLength`, `summaryLength`, `compressionRatio`, `model` |
+| `fiveW1hResult()` | `FiveW1h`: `who`, `what`, `when`, `where`, `why`, `how` (each a `FiveW1hAnswer` with `answer` and `confidence`), `model` |
+| `detectedLanguageResult()` | `DetectedLanguage`: `language`, `confidence`, `candidates` (list of `LanguageProbability` with `language` and `probability`), `method` |
+| `fixedTextResult()` | `FixedText`: `text`, `changed`, `method` |
+
+An accessor returns null when there is no result or the array does not have the expected shape. Optional values that are missing or of another type are null. Nothing throws for an unknown shape, and the array property keeps the raw data (an add-on field that is not a JSON object or array at all is read as null).
 
 ```php
 $result = $client->scrape(
@@ -208,6 +223,13 @@ $result = $client->scrape(
     withSummary: true,
     with5w1h: true,
 );
+
+foreach ($result->entries as $article) {
+    echo $article->sentimentResult()?->label->value, PHP_EOL;
+    echo implode(', ', $article->tagsResult()?->tags ?? []), PHP_EOL;
+    echo $article->summaryResult()?->text, PHP_EOL;
+    echo $article->fiveW1hResult()?->who?->answer, PHP_EOL;
+}
 ```
 
 ## How to Count News Articles per Collector and Domain
@@ -334,7 +356,7 @@ if ($batch->isFinished()) {
 
 ## Store and Restore News Articles
 
-`Article`, `ScrapeResult`, `CollectorError`, `RunPlan`, `Run` and `RunBatch` implement `JsonSerializable` and have `toArray()` and `fromArray()`. An article uses the Actor's field names (`article_title`, `date_publish`, `source_domain`, ...) plus `collection`, so `fromArray()` restores an equal object:
+`Article`, `ScrapeResult`, `CollectorError`, `RunPlan`, `Run` and `RunBatch` implement `JsonSerializable` and have `toArray()` and `fromArray()`. An article uses the Actor's field names (`article_title`, `date_publish`, `source_domain`, ...) plus `collection`, so `fromArray()` restores an equal object. `Article::$error` is deprecated: the Actors reserve the field and always send null (failed articles are left out of the dataset, failed runs are in `ScrapeResult::$errors`); it stays in `toArray()` for compatibility.
 
 ```php
 $json = json_encode($result);                            // database column, cache, queue payload
@@ -475,7 +497,7 @@ See [`examples/`](examples) for runnable scripts (set `APIFY_API_TOKEN` first):
 - `02-search-query.php`: passes `searchQuery` to keep only articles whose title, text or URL contain a keyword (here `semiconductor`) across Washington Post, The Guardian and Rappler, and prints `[collection] title` per match.
 - `03-date-range.php`: restricts the run to the last seven days with `startDate` and `endDate` (a `DateTimeImmutable` and a `YYYY-MM-DD` string; both types are accepted) and prints the articles newest first, sorted by `datePublish`.
 - `04-limit-and-merge.php`: sets `limit: 10`, which applies per collector run (four collectors return up to 40 articles), then filters to text articles with `isArticle()`, sorts newest first, and keeps the five latest titles per collector.
-- `05-analysis-addons.php`: switches on every paid analysis add-on (sentiment, tags, summary, 5W1H, language detection, text repair) for five articles per collector and prints each enrichment field. Add-ons are billed per enriched article on top of the article price.
+- `05-analysis-addons.php`: switches on every paid analysis add-on (sentiment, tags, summary, 5W1H, language detection, text repair) for five articles per collector and prints each typed enrichment result. Add-ons are billed per enriched article on top of the article price.
 - `06-error-handling.php`: shows the three exceptions `scrape()` can throw (`InvalidInputException`, `MissingApiKeyException`, `ApiException`) and the non-throwing case: a failed collector run lands in `$result->errors` while the others still deliver, and `isComplete()` tells you whether the result is partial.
 - `07-source-groups.php`: a Spanish and Portuguese language brand monitor: mixes `SourceGroup::Spanish`, `SourceGroup::Portuguese`, a single `Source` and a `Collector`, previews the collector runs with `plan()` before paying for them, scrapes with `searchQuery`, `startDate` and `limit`, counts mentions per `collection` and shows how to filter a group before passing it on.
 

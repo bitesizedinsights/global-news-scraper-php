@@ -2,18 +2,50 @@
   "url": "https://www.bbc.co.uk/news/articles/example",
   "article_title": "Example BBC headline",
   "authors": ["Reporter One", "Reporter Two"],
-  "date_publish": "2026-02-16T08:00:00",
+  "date_publish": "2026-02-16T08:00:00+00:00",
   "article_description": null,
   "text": "Body text of the example article.",
   "language": "en",
   "image_url": null,
   "source_domain": "www.bbc.co.uk",
   "type": "article",
-  "sentiment": {"sentiment": "positive"},
-  "tags": {"tags": ["politics"]},
-  "summary": {"summary": "Short summary."},
-  "five_w1h": {"who": "Example"},
-  "detected_language": {"language": "en"},
-  "fixed_text": {"text": "Body text of the example article."},
+  "sentiment": {
+    "sentiment": "positive",
+    "confidence": 0.6369,
+    "scores": {"positive": 0.3, "neutral": 0.7, "negative": 0.0, "compound": 0.6369},
+    "method": "vader"
+  },
+  "tags": {
+    "tags": ["Politics", "Economy"],
+    "count": 2,
+    "model": "gpt-4o-mini",
+    "usage": {"prompt_tokens": 100, "completion_tokens": 8, "total_tokens": 108}
+  },
+  "summary": {
+    "summary": "Short summary.",
+    "stats": {"original_length": 33, "summary_length": 14, "compression_ratio": 0.4242},
+    "model": "gpt-4o-mini",
+    "usage": {"prompt_tokens": 120, "completion_tokens": 6, "total_tokens": 126}
+  },
+  "five_w1h": {
+    "result": {
+      "who": {"answer": "Example Ministry", "confidence": 0.9},
+      "what": {"answer": "Announced a budget", "confidence": 0.85},
+      "when": {"answer": "Monday", "confidence": 0.8},
+      "where": {"answer": "London", "confidence": 0.7},
+      "why": {"answer": null, "confidence": 0.0},
+      "how": {"answer": null, "confidence": 0.0}
+    },
+    "stats": {"text_length": 33},
+    "model": "gpt-4o-mini",
+    "usage": {"prompt_tokens": 200, "completion_tokens": 90, "total_tokens": 290}
+  },
+  "detected_language": {
+    "language": "en",
+    "confidence": 0.9999,
+    "all_languages": [{"lang": "en", "prob": 0.9999}],
+    "method": "langdetect"
+  },
+  "fixed_text": {"fixed_text": "Body text of the example article.", "changed": false, "method": "ftfy"},
   "error": null
 }
