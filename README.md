@@ -321,6 +321,14 @@ Failed requests are retried automatically, by default up to 3 times with exponen
 
 **Overall time limit:** `Config::$timeout` also bounds the retries. It covers the run start, the wait for the run and all retries of each collector run: no retry is started whose wait would pass it, and the timeout of each request is cut to the time left plus 5 seconds. Reading the results of a successful run always gets at least 30 seconds, so a call can take somewhat longer than `timeout`. If polling fails because this time is used up (a skipped retry, or a request that outlived it), the client aborts the run (best effort) and the error of that last request is thrown.
 
+**Long `Retry-After`:** a wait above `retryMaxDelay` is neither waited out nor shortened to it. Retrying earlier than the server asks would most likely be rejected again and use up the retries, so the error is thrown at once: wait as long as you need before calling again, or raise `retryMaxDelay`.
+
+**Logging retries:** pass a callback as the fourth `Client` argument. It gets a `RetryEvent` (`GlobalNewsScraper\DTO\RetryEvent`) before the wait of each retry, with `method`, `path`, `retry` (from 1), `maxRetries`, `delay` (seconds), `status` (HTTP status or null), `curlError` (cURL error number or null) and `message()`. It is safe to log: it holds no token, query or body, and IDs in the path are masked. Anything the callback throws is ignored.
+
+```php
+$client = new Client(onRetry: static fn (\GlobalNewsScraper\DTO\RetryEvent $event) => error_log($event->message()));
+```
+
 A collector that still fails after the retries is reported in `ScrapeResult::$errors` as before.
 
 ### Exception messages

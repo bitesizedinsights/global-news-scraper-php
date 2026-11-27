@@ -20,6 +20,7 @@ All notable changes to this project are documented in this file. The format is b
 
 ### Added
 
+- Retry hook: an optional fourth `Client` constructor argument `$onRetry` receives a `DTO\RetryEvent` (method, path with masked IDs, retry number, delay, HTTP status or cURL error, `message()`; no token or query) before the wait of each retry, for logging. What it throws is ignored. The retry rules now live in one internal class, `Support\Retrier`.
 - Async API: `Client::start()` starts the collector runs of `scrape()` and returns a `RunBatch` of `Run` handles (Apify run IDs) without waiting; `Client::getRun()` looks one run up, `Client::wait()` waits for several runs (never aborts) and `Client::results()` returns their articles as a `ScrapeResult`, merged and deduplicated like the one of `scrape()`. A failed start keeps the handles of the other runs and a start that may have reached Apify is never repeated. Bare run IDs are matched to their collector through the run's Actor. New: `DTO\Run`, `DTO\RunBatch` and the `RunStatus` enum.
 - `Client::abort()` also accepts a `Run` handle. Behavior change: a run ID with characters no Apify ID has now throws `InvalidInputException` without a request.
 - `defense` collector (defense and security, English), `energy-climate` collector (energy and climate, English) and `startups-vc` collector (startups and venture capital, English).
