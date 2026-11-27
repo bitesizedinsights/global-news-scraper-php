@@ -258,6 +258,258 @@ final class Client
     }
 
     /**
+     * Wait until the runs reach a final status, successful or not, or the timeout expires. Never aborts a run, so
+     * you can call it again with the returned batch.
+     *
+     * A run's outcome or a failed lookup never throws: check `RunBatch::isFinished()` and `isSuccessful()` on the
+     * result. A run that cannot be read keeps its last known state, gets `Run::$lookupError` and is not asked again
+     * in this call. After the timeout every run not looked up yet is still looked up once, without waiting.
+     *
+     * @param  RunBatch|Run|string|array<mixed>|Collection<array-key, mixed>  $runs  A batch, or handles and/or bare
+     *                                                                               run IDs (see `getRun()`).
+     * @param  int|null  $timeout  Seconds to wait for all runs together; null = `Config::$timeout`, 0 = look each
+     *                             unfinished run up once.
+     * @return RunBatch The updated handles in the given order, with the errors of the given batch.
+     *
+     * @throws InvalidInputException for an invalid run ID or a negative timeout, before any request
+     * @throws ApiException when the collector of a bare run ID cannot be determined
+     * @throws RateLimitException
+     * @throws SpendingLimitException
+     * @throws MissingApiKeyException
+     */
+    public function wait(RunBatch|Run|string|array|Collection $runs, ?int $timeout = null): RunBatch
+    {
+        if ($timeout !== null && $timeout < 0) {
+            throw new InvalidInputException('timeout must not be negative');
+        }
+
+        $deadline = microtime(true) + ($timeout ?? $this->config->timeout);
+        [$handles, $errors] = $this->handles($runs);
+
+        /** @var list<Run> $waited */
+        $waited = $this->concurrently(array_map(
+            fn (Run $run): Closure => fn (): PromiseInterface => $this->awaitRun($run, $deadline),
+            $handles,
+        ));
+
+        return new RunBatch(new Collection($waited), new Collection($errors));
+    }
+
+    /**
+     * Read the articles of finished runs, merged and deduplicated exactly like the result of `scrape()`: of
+     * duplicates the article of the earlier run is kept. Does not wait and never aborts or starts a run.
+     *
+     * Only successful runs have results. Every other run becomes a `CollectorError` with its run ID: failed, aborted
+     * and timed-out runs, unfinished runs (call `wait()` and read again) and runs that cannot be read. The start
+     * errors of a given batch come first in `ScrapeResult::$errors`.
+     *
+     * @param  RunBatch|Run|string|array<mixed>|Collection<array-key, mixed>  $runs  As for `wait()`.
+     *
+     * @throws InvalidInputException for an invalid run ID, before any request
+     * @throws ApiException when the collector of a bare run ID cannot be determined
+     * @throws RateLimitException
+     * @throws SpendingLimitException also when HTTP 402 stopped the reading and not a single article was read
+     * @throws MissingApiKeyException
+     */
+    public function results(RunBatch|Run|string|array|Collection $runs): ScrapeResult
+    {
+        [$handles, $errors] = $this->handles($runs);
+
+        $outcomes = $this->concurrently(array_map(
+            fn (Run $run): Closure => fn (): PromiseInterface => $this->collectResults($run),
+            $handles,
+        ));
+
+        $articles = [];
+        $spendingLimit = null;
+
+        foreach ($outcomes as $outcome) {
+            if ($outcome instanceof SpendingLimitError) {
+                $spendingLimit ??= $outcome->exception;
+                $outcome = $outcome->error;
+            }
+
+            if ($outcome instanceof CollectorError) {
+                $errors[] = $outcome;
+            } elseif (is_array($outcome)) {
+                /** @var list<Article> $outcome */
+                array_push($articles, ...$outcome);
+            }
+        }
+
+        return $this->merge($articles, $errors, $spendingLimit);
+    }
+
+    /**
+     * Turns the argument of `wait()` and `results()` into handles. All run IDs are checked before the first request;
+     * a run given twice is used once.
+     *
+     * @param  RunBatch|Run|string|array<mixed>|Collection<array-key, mixed>  $runs
+     * @return array{0: list<Run>, 1: list<CollectorError>}
+     */
+    private function handles(RunBatch|Run|string|array|Collection $runs): array
+    {
+        $errors = [];
+
+        if ($runs instanceof RunBatch) {
+            $errors = array_values($runs->errors->all());
+            $runs = $runs->runs;
+        }
+
+        $items = match (true) {
+            $runs instanceof Collection => $runs->all(),
+            is_array($runs) => $runs,
+            default => [$runs],
+        };
+        $unique = [];
+
+        foreach ($items as $item) {
+            if (! $item instanceof Run && ! is_string($item)) {
+                throw new InvalidInputException('Runs must be Run handles or run ID strings');
+            }
+
+            $runId = $this->checkedRunId($item);
+
+            // A handle wins over a bare ID of the same run: it needs no lookup to know the collector
+            if (! isset($unique[$runId]) || is_string($unique[$runId])) {
+                $unique[$runId] = $item;
+            }
+        }
+
+        $this->resolveApiKey();
+
+        $handles = array_map(
+            fn (Run|string $run): Run => $run instanceof Run ? $run : $this->getRun($run),
+            array_values($unique),
+        );
+
+        return [$handles, $errors];
+    }
+
+    /**
+     * Runs the tasks, up to `Config::$maxConcurrency` at a time. The tasks must not reject.
+     *
+     * @param  array<int, Closure(): PromiseInterface>  $tasks
+     * @return list<mixed> Outcomes in the order of the tasks.
+     */
+    private function concurrently(array $tasks): array
+    {
+        $outcomes = [];
+        $promises = (static function () use ($tasks) {
+            foreach ($tasks as $index => $task) {
+                yield $index => $task();
+            }
+        })();
+
+        Each::ofLimit(
+            $promises,
+            max(1, $this->config->maxConcurrency),
+            static function (mixed $outcome, mixed $index) use (&$outcomes): void {
+                $outcomes[$index] = $outcome;
+            },
+        )->wait();
+
+        ksort($outcomes);
+
+        return array_values($outcomes);
+    }
+
+    /**
+     * Polls one run until it is final or the deadline passes; an unfinished run is looked up at least once.
+     *
+     * @return PromiseInterface Resolves to the latest `Run`; never rejects.
+     */
+    private function awaitRun(Run $run, float $deadline): PromiseInterface
+    {
+        return Coroutine::of(function () use ($run, $deadline) {
+            try {
+                $lookedUp = false;
+
+                while (! $run->isFinished()) {
+                    $remaining = (int) ceil($deadline - microtime(true));
+
+                    if ($remaining <= 0 && $lookedUp) {
+                        break;
+                    }
+
+                    $run = yield $this->lookup(
+                        $run->id,
+                        $run->collector,
+                        max($deadline, microtime(true)),
+                        $remaining > 0 ? min(self::MAX_WAIT_SECONDS, $remaining) : null,
+                    );
+                    $lookedUp = true;
+                }
+            } catch (ApiException $e) {
+                $run = $run->withLookupError($e->getMessage());
+            } catch (Throwable $e) {
+                $run = $run->withLookupError(ErrorText::transport($e));
+            }
+
+            yield Create::promiseFor($run);
+        });
+    }
+
+    /**
+     * Reads the articles of one run, looking the run up first unless the handle already shows how it ended.
+     *
+     * @return PromiseInterface Resolves to `list<Article>`, a `CollectorError` or a `SpendingLimitError`;
+     *                          never rejects.
+     */
+    private function collectResults(Run $run): PromiseInterface
+    {
+        return Coroutine::of(function () use ($run) {
+            try {
+                $deadline = microtime(true) + max($this->config->timeout, self::RESULTS_WINDOW_SECONDS);
+
+                if (! $run->isFinished() || ($run->isSuccessful() && $run->defaultDatasetId === null)) {
+                    $run = yield $this->lookup($run->id, $run->collector, $deadline);
+                }
+
+                if (! $run->isSuccessful()) {
+                    $status = $run->status->value ?? 'unknown';
+
+                    throw $run->isFinished()
+                        ? $this->failedRun($status, $run->statusMessage, $run->id)
+                        : new ApiException(
+                            "Actor run is not finished (status {$status}): call wait() and read the results again",
+                            0,
+                            null,
+                            $run->id,
+                        );
+                }
+
+                // The dataset ID may come from a stored handle and becomes part of the request path
+                if ($run->defaultDatasetId === null || ! RunId::isValid($run->defaultDatasetId)) {
+                    throw new ApiException('Invalid API response: missing dataset ID', 0, null, $run->id);
+                }
+
+                yield $this->readDataset($run->collector, $run->defaultDatasetId, $deadline, $run->id);
+            } catch (ApiException $e) {
+                yield Create::promiseFor($this->collectorFailure($run->collector, $e, $run->id));
+            } catch (Throwable $e) {
+                yield Create::promiseFor(new CollectorError($run->collector, ErrorText::transport($e), $run->id));
+            }
+        });
+    }
+
+    /**
+     * @return PromiseInterface Resolves to `list<Article>`; rejects with an `ApiException`.
+     */
+    private function readDataset(
+        Collector $collector,
+        string $datasetId,
+        float $deadline,
+        ?string $runId,
+    ): PromiseInterface {
+        return $this->request('GET', "/datasets/{$datasetId}/items", [
+            'query' => ['format' => 'json'],
+            'deadline' => $deadline,
+            'run_id' => $runId,
+        ])->then(fn (array $items): array => $this->articles($collector, $items, $runId));
+    }
+
+    /**
      * Validated options of `scrape()` and `start()`: the planned runs and the Actor input shared by them.
      *
      * @param  array<mixed>|Collection<array-key, mixed>|Source|SourceGroup|Collector  $sources
@@ -612,13 +864,13 @@ final class Client
                     throw new ApiException('Invalid API response: missing dataset ID');
                 }
 
-                $items = yield $this->request('GET', "/datasets/{$datasetId}/items", [
-                    'query' => ['format' => 'json'],
-                    'deadline' => max($deadline, microtime(true) + self::RESULTS_WINDOW_SECONDS),
-                ]);
-
                 // A coroutine resolves with its final yielded value, not with a return value
-                yield Create::promiseFor($this->articles($plan->collector, $items));
+                yield $this->readDataset(
+                    $plan->collector,
+                    $datasetId,
+                    max($deadline, microtime(true) + self::RESULTS_WINDOW_SECONDS),
+                    $knownRunId,
+                );
             } catch (ApiException $e) {
                 yield Create::promiseFor($this->collectorFailure($plan->collector, $e, $knownRunId));
             }
@@ -723,15 +975,23 @@ final class Client
     /**
      * One status request. A null collector (bare run ID) is identified through the run's Actor.
      *
+     * @param  int|null  $waitForFinish  Let Apify hold the request open for up to this many seconds.
      * @return PromiseInterface Resolves to a `Run`; rejects with an `ApiException`.
      */
-    private function lookup(string $runId, ?Collector $collector, float $deadline): PromiseInterface
-    {
-        return Coroutine::of(function () use ($runId, $collector, $deadline) {
-            $data = $this->runData(yield $this->request('GET', '/actor-runs/'.rawurlencode($runId), [
-                'deadline' => $deadline,
-                'run_id' => $runId,
-            ]));
+    private function lookup(
+        string $runId,
+        ?Collector $collector,
+        float $deadline,
+        ?int $waitForFinish = null,
+    ): PromiseInterface {
+        return Coroutine::of(function () use ($runId, $collector, $deadline, $waitForFinish) {
+            $options = ['deadline' => $deadline, 'run_id' => $runId];
+
+            if ($waitForFinish !== null) {
+                $options['query'] = ['waitForFinish' => $waitForFinish];
+            }
+
+            $data = $this->runData(yield $this->request('GET', '/actor-runs/'.rawurlencode($runId), $options));
             $status = $data['status'] ?? null;
 
             if (! is_string($status) || RunStatus::tryFrom($status) === null) {
@@ -847,7 +1107,7 @@ final class Client
      * @param  array<mixed>  $items
      * @return list<Article>
      */
-    private function articles(Collector $collector, array $items): array
+    private function articles(Collector $collector, array $items, ?string $runId): array
     {
         $articles = [];
 
@@ -859,7 +1119,7 @@ final class Client
 
                 $articles[] = Article::fromArray($item, $collector->value);
             } catch (InvalidArgumentException $e) {
-                throw new ApiException("Invalid dataset item at index {$index}: ".$e->getMessage(), 0, $e);
+                throw new ApiException("Invalid dataset item at index {$index}: ".$e->getMessage(), 0, $e, $runId);
             }
         }
 

@@ -395,3 +395,267 @@ test('abort accepts a run handle', function () {
 
     expect(requestLines($history))->toBe(['POST /v2/actor-runs/run-'.A_US.'/abort']);
 });
+
+function handle(string $id = 'abc123', ?RunStatus $status = RunStatus::Running, ?string $datasetId = 'ds1'): Run
+{
+    return new Run(Collector::Us, $id, $status, $datasetId);
+}
+
+test('wait polls every run until it is final and does not throw for failed runs', function () {
+    $history = [];
+    $client = makeClient([
+        US => ['statuses' => ['READY', 'RUNNING', 'ABORTING', 'ABORTED'], 'statusMessage' => 'Stopped'],
+        UK => ['statuses' => ['RUNNING', 'SUCCEEDED']],
+        TW => ['statuses' => ['RUNNING', 'TIMING-OUT', 'TIMED-OUT']],
+    ], $history);
+    $started = $client->start(THREE);
+
+    $batch = $client->wait($started);
+
+    expect($batch->runs->pluck('status')->all())
+        ->toBe([RunStatus::TimedOut, RunStatus::Aborted, RunStatus::Succeeded])
+        ->and($batch->runIds())->toBe($started->runIds())
+        ->and($batch->isFinished())->toBeTrue()
+        ->and($batch->isSuccessful())->toBeFalse()
+        ->and($batch->runs[1]->statusMessage)->toBe('Stopped')
+        ->and($history)->toHaveCount(3 + 2 + 3 + 1)
+        ->and($history[3]['request']->getUri()->getQuery())->toBe('waitForFinish=60');
+});
+
+test('wait sends no request for runs that are already final', function () {
+    $history = [];
+    $client = queueClient([], $history);
+
+    $batch = $client->wait([handle('a1', RunStatus::Succeeded), handle('a2', RunStatus::Failed)]);
+
+    expect($batch->isFinished())->toBeTrue()->and($history)->toBeEmpty();
+});
+
+test('wait with timeout 0 looks each unfinished run up once and never aborts', function () {
+    $history = [];
+    $running = ['statuses' => ['RUNNING', 'RUNNING']];
+    $client = makeClient([US => $running, UK => $running], $history);
+    $started = $client->start([Source::WashingtonPost, Source::BbcNews]);
+
+    $batch = $client->wait($started, 0);
+
+    expect($batch->isFinished())->toBeFalse()
+        ->and($batch->runs->pluck('lookupError')->all())->toBe([null, null])
+        ->and(array_slice(requestLines($history), 2))
+        ->toBe(['GET /v2/actor-runs/run-'.A_US, 'GET /v2/actor-runs/run-'.A_UK])
+        ->and($history[2]['request']->getUri()->getQuery())->toBe('')
+        ->and($history[2]['options']['timeout'])->toBeLessThanOrEqual(6);
+});
+
+test('wait stops at its timeout and can be called again', function () {
+    $history = [];
+    $running = fn () => runResponse(['status' => 'RUNNING']);
+    $slow = function () use ($running) {
+        usleep(1_100_000);
+
+        return $running();
+    };
+    $client = queueClient([$slow, runResponse(['status' => 'SUCCEEDED'])], $history);
+
+    $first = $client->wait(handle(), 1);
+    $second = $client->wait($first, 1);
+
+    expect($first->isFinished())->toBeFalse()
+        ->and($second->isSuccessful())->toBeTrue()
+        ->and(requestLines($history))->toBe(array_fill(0, 2, 'GET /v2/actor-runs/abc123'))
+        ->and($history[0]['request']->getUri()->getQuery())->toBe('waitForFinish=1');
+});
+
+test('a failed lookup keeps the last state and does not stop waiting for the other runs', function () {
+    $client = makeClient([
+        US => ['poll' => new Response(404, [], '{}')],
+        UK => ['statuses' => ['RUNNING', 'SUCCEEDED']],
+    ]);
+
+    $batch = $client->wait([
+        new Run(Collector::Us, 'run-'.A_US, RunStatus::Running),
+        new Run(Collector::Uk, 'run-'.A_UK),
+    ]);
+
+    expect($batch->runs[0]->status)->toBe(RunStatus::Running)
+        ->and($batch->runs[0]->lookupError)->toBe('Apify API request failed (HTTP 404)')
+        ->and($batch->isFinished())->toBeFalse()
+        ->and($batch->runs[1]->status)->toBe(RunStatus::Succeeded)
+        ->and($batch->runs[1]->lookupError)->toBeNull();
+});
+
+test('a later successful lookup clears the lookup error, which survives storing', function () {
+    $client = queueClient([new Response(500), runResponse(['status' => 'SUCCEEDED'])]);
+
+    $first = $client->wait(handle());
+
+    expect(RunBatch::fromArray($first->toArray())->runs[0]->lookupError)->toBe('Apify API request failed (HTTP 500)')
+        ->and($client->wait($first)->runs[0]->lookupError)->toBeNull();
+});
+
+test('wait and results keep the start errors of a batch', function () {
+    $client = makeClient([
+        US => ['items' => [article('https://a.test/us')]],
+        UK => ['start' => new Response(500, [], '{}')],
+    ]);
+
+    $batch = $client->wait($client->start([Source::WashingtonPost, Source::BbcNews]));
+    $result = $client->results($batch);
+
+    expect($batch->errors)->toHaveCount(1)
+        ->and($batch->isFinished())->toBeTrue()
+        ->and($result->entries->pluck('url')->all())->toBe(['https://a.test/us'])
+        ->and($result->errors->first()->collector)->toBe(Collector::Uk)
+        ->and($result->isComplete())->toBeFalse();
+});
+
+test('start, wait and results give the same result as scrape', function () {
+    $actors = [
+        US => ['items' => [article('https://www.a.test/same/?utm_source=x'), article('https://a.test/us')]],
+        UK => ['items' => [article('http://a.test/same'), article('https://a.test/uk')]],
+        TW => ['statuses' => ['FAILED'], 'statusMessage' => 'Broke'],
+    ];
+    $client = makeClient($actors);
+
+    $async = $client->results($client->wait($client->start(THREE)));
+    $sync = makeClient($actors)->scrape(THREE);
+
+    expect($async->toArray())->toBe($sync->toArray())
+        ->and($async->entries->pluck('collection')->all())->toBe(['us', 'us', 'uk']);
+});
+
+test('results of a stored batch can be read in another process without wait', function () {
+    $history = [];
+    $actors = [US => ['items' => [article('https://a.test/us')], 'statuses' => ['READY', 'SUCCEEDED']]];
+    $stored = json_encode(makeClient($actors)->start(Source::WashingtonPost), JSON_THROW_ON_ERROR);
+
+    $client = makeClient([US => ['items' => [article('https://a.test/us')]]], $history);
+    $result = $client->results(RunBatch::fromArray(json_decode($stored, true)));
+
+    expect($result->entries->pluck('url')->all())->toBe(['https://a.test/us'])
+        ->and(requestLines($history))
+        ->toBe(['GET /v2/actor-runs/run-'.A_US, 'GET /v2/datasets/ds-'.A_US.'/items']);
+});
+
+test('results accept bare run IDs and identify their collectors', function () {
+    $client = makeClient([US => ['items' => [article('https://a.test/us')]], UK => ['items' => []]]);
+
+    $result = $client->results(['run-'.A_UK, 'run-'.A_US]);
+
+    expect($result->isComplete())->toBeTrue()
+        ->and($result->entries->first()->collection)->toBe('us');
+});
+
+test('a run given twice is read once and a handle spares the Actor lookup', function () {
+    $history = [];
+    $client = makeClient([US => ['items' => [article('https://a.test/us')]]], $history);
+    $run = new Run(Collector::Us, 'run-'.A_US, RunStatus::Succeeded, 'ds-'.A_US);
+
+    $result = $client->results(collect(['run-'.A_US, $run, 'run-'.A_US]));
+
+    expect($result->entries)->toHaveCount(1)
+        ->and(requestLines($history))->toBe(['GET /v2/datasets/ds-'.A_US.'/items']);
+});
+
+test('results report failed runs without reading their dataset', function (RunStatus $status) {
+    $history = [];
+    $run = new Run(Collector::Us, 'abc123', $status, 'ds1', statusMessage: 'Reason');
+
+    $result = queueClient([], $history)->results($run);
+
+    expect($result->entries)->toBeEmpty()
+        ->and($result->errors->first()->toArray())->toBe([
+            'collector' => 'us',
+            'message' => "Actor run ended with status {$status->value}: Reason",
+            'runId' => 'abc123',
+            'statusMessage' => 'Reason',
+        ])
+        ->and($history)->toBeEmpty();
+})->with([RunStatus::Failed, RunStatus::Aborted, RunStatus::TimedOut]);
+
+test('results look an unfinished run up once, without waiting or aborting', function (string $status) {
+    $history = [];
+    $client = queueClient([runResponse(['status' => $status])], $history);
+
+    $result = $client->results(handle());
+
+    expect($result->errors->first()->message)
+        ->toBe("Actor run is not finished (status {$status}): call wait() and read the results again")
+        ->and($result->errors->first()->runId)->toBe('abc123')
+        ->and(requestLines($history))->toBe(['GET /v2/actor-runs/abc123'])
+        ->and($history[0]['request']->getUri()->getQuery())->toBe('');
+})->with(['READY', 'RUNNING', 'ABORTING', 'TIMING-OUT']);
+
+test('one unreadable run does not cost the articles of the others', function (array $us, string $message) {
+    $client = makeClient([US => $us, UK => ['items' => [article('https://a.test/uk')]]]);
+
+    $result = $client->results([
+        new Run(Collector::Us, 'run-'.A_US, RunStatus::Succeeded, 'ds-'.A_US),
+        new Run(Collector::Uk, 'run-'.A_UK, RunStatus::Succeeded, 'ds-'.A_UK),
+    ]);
+
+    expect($result->entries->pluck('url')->all())->toBe(['https://a.test/uk'])
+        ->and($result->errors->first()->message)->toStartWith($message)
+        ->and($result->errors->first()->runId)->toBe('run-'.A_US);
+})->with([
+    'HTTP error' => [['dataset' => new Response(404, [], '{}')], 'Apify API request failed (HTTP 404)'],
+    'invalid item' => [['items' => [['url' => 5]]], 'Invalid dataset item at index 0'],
+    'malformed JSON' => [['dataset' => new Response(200, [], 'x')], 'Invalid API response: malformed JSON'],
+]);
+
+test('a dataset ID that could change the request path is never requested', function (?string $datasetId) {
+    $history = [];
+    $client = queueClient([runResponse(['status' => 'SUCCEEDED', 'defaultDatasetId' => $datasetId])], $history);
+
+    $result = $client->results(handle(status: RunStatus::Succeeded, datasetId: $datasetId));
+
+    expect($result->errors->first()->message)->toBe('Invalid API response: missing dataset ID')
+        ->and(array_filter(requestLines($history), fn ($line) => str_contains($line, 'datasets')))->toBeEmpty();
+})->with([null, '', '../../users/me', 'a?token=1']);
+
+test('results throw the spending limit only when no article was read', function () {
+    $runs = [handle('a1', RunStatus::Succeeded), handle('a2', RunStatus::Succeeded, 'ds2')];
+
+    expect(fn () => queueClient([usageLimit(), usageLimit()])->results($runs))
+        ->toThrow(SpendingLimitException::class);
+
+    $result = queueClient([usageLimit(), jsonResponse(200, [article('https://a.test/1')])])->results($runs);
+
+    expect($result->entries)->toHaveCount(1)->and($result->errors->first()->runId)->toBe('a1');
+});
+
+test('a batch without runs gives its start errors and sends nothing', function () {
+    $history = [];
+    $client = makeClient([US => ['start' => new Response(401, [], '{}')]], $history);
+
+    $result = $client->results($client->wait($client->start(Source::WashingtonPost)));
+
+    expect($result->entries)->toBeEmpty()
+        ->and($result->errors)->toHaveCount(1)
+        ->and($history)->toHaveCount(1);
+});
+
+test('wait and results check every run ID before the first request', function (mixed $bad) {
+    $history = [];
+    $client = queueClient([], $history);
+
+    expect(fn () => $client->wait(['abc123', $bad]))->toThrow(InvalidInputException::class)
+        ->and(fn () => $client->results(['abc123', $bad]))->toThrow(InvalidInputException::class)
+        ->and($history)->toBeEmpty();
+})->with(['../acts', '', 5, null]);
+
+test('wait and results refuse a bare ID of an unknown run or Actor', function () {
+    expect(fn () => queueClient([new Response(404, [], '{}')])->wait('abc123'))
+        ->toThrow(ApiException::class, 'HTTP 404')
+        ->and(fn () => queueClient([
+            runResponse(['actId' => 'act9']),
+            jsonResponse(200, ['data' => ['username' => 'x', 'name' => 'y']]),
+        ])->results('abc123'))->toThrow(ApiException::class, 'does not belong to a collector Actor');
+});
+
+test('wait refuses a negative timeout before any request', function () {
+    $history = [];
+
+    expect(fn () => queueClient([], $history)->wait(handle(), -1))->toThrow(InvalidInputException::class)
+        ->and($history)->toBeEmpty();
+});

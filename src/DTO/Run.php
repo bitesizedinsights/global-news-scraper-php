@@ -20,6 +20,8 @@ final readonly class Run implements JsonSerializable
      * @param  RunStatus|null  $status  Status at the last answer of Apify; null only when the run was started but the
      *                                  answer held no known status (`Client::getRun()` looks it up).
      * @param  string|null  $statusMessage  The Actor's own status text, raw, capped at 2000 characters.
+     * @param  string|null  $lookupError  Why `Client::wait()` could not read the run; the other fields then show the
+     *                                    last known state. Null after a successful lookup.
      */
     public function __construct(
         public Collector $collector,
@@ -29,7 +31,22 @@ final readonly class Run implements JsonSerializable
         public ?string $startedAt = null,
         public ?string $finishedAt = null,
         public ?string $statusMessage = null,
+        public ?string $lookupError = null,
     ) {}
+
+    public function withLookupError(string $message): self
+    {
+        return new self(
+            $this->collector,
+            $this->id,
+            $this->status,
+            $this->defaultDatasetId,
+            $this->startedAt,
+            $this->finishedAt,
+            $this->statusMessage,
+            $message,
+        );
+    }
 
     /** @param  array<mixed>  $data  Output of `toArray()`. */
     public static function fromArray(array $data): self
@@ -47,6 +64,7 @@ final readonly class Run implements JsonSerializable
             startedAt: Value::nullableString($data, 'startedAt'),
             finishedAt: Value::nullableString($data, 'finishedAt'),
             statusMessage: Value::nullableString($data, 'statusMessage'),
+            lookupError: Value::nullableString($data, 'lookupError'),
         );
     }
 
@@ -72,6 +90,7 @@ final readonly class Run implements JsonSerializable
             'startedAt' => $this->startedAt,
             'finishedAt' => $this->finishedAt,
             'statusMessage' => $this->statusMessage,
+            'lookupError' => $this->lookupError,
         ];
     }
 
