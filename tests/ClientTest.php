@@ -117,6 +117,19 @@ test('a shared source is run once on the most specific collector', function () {
         ->toBe('/v2/acts/bite-sized-insights~mexico-news-scraper/runs');
 });
 
+test('URL variants are merged into the first article, which keeps its own URL', function () {
+    $client = makeClient([
+        US => ['items' => [article('https://www.a.test/same/?utm_source=rss'), article('https://a.test/s?id=1')]],
+        UK => ['items' => [article('http://a.test/same'), article('https://a.test/s?id=2')]],
+    ]);
+
+    $result = $client->scrape([Source::BbcNews, Source::WashingtonPost, Source::NewYorkTimes]);
+
+    expect($result->entries->pluck('url')->all())->toBe([
+        'https://www.a.test/same/?utm_source=rss', 'https://a.test/s?id=1', 'https://a.test/s?id=2',
+    ])->and($result->entries->first()->collection)->toBe('us');
+});
+
 test('duplicate sources are sent once', function () {
     $history = [];
     $client = makeClient([US => []], $history);

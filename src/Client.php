@@ -21,6 +21,7 @@ use GlobalNewsScraper\Exception\SpendingLimitException;
 use GlobalNewsScraper\Support\ErrorText;
 use GlobalNewsScraper\Support\Planner;
 use GlobalNewsScraper\Support\SpendingLimitError;
+use GlobalNewsScraper\Support\UrlKey;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\BadResponseException;
@@ -332,7 +333,7 @@ final class Client
         }
 
         return new ScrapeResult(
-            (new Collection($articles))->unique('url')->values(),
+            (new Collection($articles))->unique(static fn (Article $a): string => UrlKey::of($a->url), true)->values(),
             new Collection($errors),
         );
     }

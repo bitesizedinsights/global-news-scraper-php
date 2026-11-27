@@ -87,7 +87,7 @@ What happens behind the scenes:
 - Each source is mapped back to the collector Actor that offers it (`Source::collectors()`). `Client::plan()` shows the runs without sending a request.
 - The fewest collectors that cover all your sources are used. A source offered by several collectors (for example `Source::LaJornada` in `latam` and `mx`) goes to a collector that is needed anyway, otherwise to the country collector rather than the regional one.
 - Every collector runs once, separately, with only its sources switched on. Up to `Config::$maxConcurrency` runs (default 2) are active at the same time.
-- The articles are merged and deduplicated by URL. Each `Article` has a `collection` property with the collector key (`us`, `uk`, `jp-en`, ...).
+- The articles are merged and deduplicated by URL, ignoring `http`/`https`, `www.`, default ports, trailing slashes, in-page fragments, query parameter order and tracking parameters (`utm_*`, `fbclid`, `gclid` and similar); the first article is kept with its URL unchanged. Each `Article` has a `collection` property with the collector key (`us`, `uk`, `jp-en`, ...).
 - `scrape()` returns a `ScrapeResult`: `entries` is an `Illuminate\Support\Collection` of `Article` objects, `errors` lists the collectors whose run failed. A failed collector never hides the articles of the others.
 
 ```php
