@@ -132,6 +132,25 @@ $result->entries
 $result->entries->groupBy('collection')->map->count();
 ```
 
+### How to Find a News Source by Name
+
+When the outlet name comes from a user, a config file or a database, look the `Source` case up:
+
+```php
+Source::fromLabel('the new york times');   // Source::NewYorkTimes
+Source::fromLabel('The Guardian');         // null: two sources have this name
+Source::search('the guardian');            // both of them first, then other names and keys containing the text
+Source::search('bbc');                     // the sources with "bbc" in their name or key
+
+foreach (Source::search('guardian') as $source) {
+    echo "{$source->value}: {$source->label()} (".implode(', ', array_column($source->collectors(), 'value')).")\n";
+}
+```
+
+- `fromLabel()` matches the whole display name (`Source::label()`), ignoring case, leading and trailing white space and repeated spaces. It returns null when nothing matches **or when several sources match**: a few display names belong to two sources. It never guesses. If names differ in case only, the exact spelling wins.
+- `search()` returns all sources whose display name or key (the enum value, e.g. `bbc_news`) contains the text, ignoring case: sources named exactly like the query first, then the rest in the order of `Source::cases()`. A blank query returns an empty list. The text is taken literally, not as a pattern.
+- Neither folds accents (`Excelsior` does not find `Excélsior`) or corrects typos. Use the key with `Source::tryFrom()` when you need a stable identifier.
+
 ## How to Scrape All News Sources or a Whole Language
 
 Instead of listing outlets, pass a `SourceGroup`, a `Collector` or a mix of `Source`, `SourceGroup` and `Collector` cases (an array, a `Collection` or a single case). Groups and collectors are expanded to their sources, duplicates are removed and the usual planning applies.
