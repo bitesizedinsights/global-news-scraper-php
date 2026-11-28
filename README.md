@@ -36,7 +36,7 @@ The API key comes from `setApifyKey()`. Otherwise `APIFY_API_TOKEN` or `APIFY_TO
 
 ## Sample Output: Merged News Articles with Collection
 
-Every entry is an `Article` object. This is one entry (values from a US collector item):
+Every entry is an `Article` object. This is one entry of a US collector run with all six add-ons requested (illustrative values; without an add-on, or when it did not succeed for the article, its property is null). The add-on properties hold the raw arrays, shown here as JSON, some without their `model`, `usage` and `stats` entries; read them with the [typed accessors](#typed-add-on-results):
 
 ```
 url:          https://www.nytimes.com/2026/02/15/us/example-headline.html
@@ -50,6 +50,13 @@ language:     en
 imageUrl:     https://static01.nyt.com/images/example.jpg
 sourceDomain: www.nytimes.com
 type:         ArticleType::Article
+sentiment:    {"sentiment": "neutral", "confidence": 0.0, "scores": {"positive": 0.0, "neutral": 1.0, "negative": 0.0, "compound": 0.0}, "method": "vader"}
+tags:         {"tags": ["Politics", "Economy"], "count": 2}
+summary:      {"summary": "Compact summary of the article."}
+fiveW1h:      {"result": {"who": {"answer": "Example Ministry", "confidence": 0.9}, "what": {"answer": "Announced a budget", "confidence": 0.85}, "when": {"answer": "Monday", "confidence": 0.8}, "where": {"answer": "Washington", "confidence": 0.7}, "why": {"answer": null, "confidence": 0.0}, "how": {"answer": null, "confidence": 0.0}}}
+detectedLanguage: {"language": "en", "confidence": 0.9999, "all_languages": [{"lang": "en", "prob": 0.9999}], "method": "langdetect"}
+fixedText:    {"fixed_text": "Full article text extracted from the page...", "changed": false, "method": "ftfy"}
+error:        null (deprecated, always null)
 ```
 
 Video and audio pages (`type` is `video` or `audio`) have little or no text: use `Article::isArticle()` or `->where('type', ArticleType::Article)` to keep articles only.
@@ -613,7 +620,7 @@ Install the package, set your Apify API token and pass the outlets you want to `
 
 ### How much does it cost to scrape news articles?
 
-$0.0002 per collector run plus $1.00 to $2.00 per 1,000 articles, plus optional add-ons. The pricing section above has worked examples.
+$0.0002 per collector run plus $1.00 to $2.00 per 1,000 articles, plus optional add-ons. The pricing section above has worked examples, and `CostEstimator::estimate()` calculates the upper bound of your own run plan.
 
 ### Which outlets can I use?
 
@@ -633,7 +640,7 @@ The other collectors' articles are still returned and the failure is listed in `
 
 ### How many articles can I get?
 
-`limit` is the maximum per collector run, (0 to 10000, 0 means unlimited, the Actor default is 100). Date filters only accept `YYYY-MM-DD` days: `startDate` must not be in the future, `endDate` not older than 5 years.
+`limit` is the maximum number of articles per collector run (0 to 10000, 0 means unlimited, the Actor default is 100), so several collectors can return more than `limit` in total. Date filters only accept `YYYY-MM-DD` days: `startDate` must not be in the future, `endDate` not older than 5 years.
 
 ### Does it work without Laravel?
 
